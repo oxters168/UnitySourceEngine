@@ -37,10 +37,7 @@ public class SourceModel
     public void Dispose()
     {
         if (loadedModels != null && loadedModels.ContainsKey(modelKey))
-        {
             loadedModels.Remove(modelKey);
-            Debug.Log("Model removed, unique model count: " + loadedModels.Count);
-        }
 
         if (materialsCreated != null)
             foreach (Material mat in materialsCreated)
@@ -101,7 +98,6 @@ public class SourceModel
         else
         {
             model = new SourceModel(fixedModelName, fixedModelLocation);
-            Debug.Log("Model created, unique model count: " + loadedModels.Count);
             model.Parse(vpkParser);
         }
 

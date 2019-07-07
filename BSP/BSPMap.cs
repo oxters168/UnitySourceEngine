@@ -17,11 +17,10 @@ public class BSPMap
     #region Map Variables
     public string mapName { get; private set; }
     public string mapDir { get; private set; }
-    public bool combineMeshesWithSameTextures;
+    public bool combineMeshesWithSameTextures { get; private set; }
     public static bool excludeTextures;
     public static bool excludeModels;
     public static bool excludeMapFaces;
-    private int maxAtlasSize, atlasCushion;
     public static string vpkLoc;
     public static Material mapMaterial;
     public GameObject gameObject { get; private set; }
@@ -43,15 +42,13 @@ public class BSPMap
     private int totalItemsToLoad;
     #endregion
     
-    public BSPMap(string _mapLocation, bool _combineMeshes, int _maxAtlasSize = 1024, int _atlasCushion = 1)
+    public BSPMap(string _mapLocation, bool _combineMeshesWithSameTextures)
     {
         mapDir = _mapLocation.Replace("\\", "/").ToLower();
         mapName = Path.GetFileNameWithoutExtension(mapDir);
         mapDir = Path.GetDirectoryName(mapDir);
 
-        //combineMeshes = _combineMeshes;
-        maxAtlasSize = _maxAtlasSize;
-        atlasCushion = _atlasCushion;
+        combineMeshesWithSameTextures = _combineMeshesWithSameTextures;
     }
 
     public override bool Equals(object obj)
