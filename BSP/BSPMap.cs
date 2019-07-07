@@ -515,57 +515,6 @@ public class BSPMap
     }
 }
 
-public class UVCorrector : UnityThreadJob
-{
-    public List<FaceMesh> allFaces;
-    public Rect uvCorrection;
-    public FaceMesh faceCopy;
-    public bool disposeOriginal;
-
-    public UVCorrector(List<FaceMesh> faces, Rect correction)
-    {
-        allFaces = faces;
-        uvCorrection = correction;
-    }
-
-    public void Dispose()
-    {
-        allFaces.Clear();
-        allFaces = null;
-        faceCopy.Dispose();
-        faceCopy = null;
-    }
-
-    protected override void ThreadFunction()
-    {
-        base.ThreadFunction();
-        MakeCorrections();
-    }
-    public void MakeCorrections()
-    {
-        foreach (FaceMesh intheface in allFaces)
-        {
-            faceCopy = intheface;
-            //faceCopy = FaceMesh.Copy(intheface);
-            //if (disposeOriginal) intheface.Dispose();
-            List<Vector2> atlasTexturePosition = new List<Vector2>();
-            List<Vector2> atlasTextureSize = new List<Vector2>();
-            for (int j = 0; j < faceCopy.meshData.uv.Length; j++)
-            {
-                atlasTexturePosition.Add(uvCorrection.position - Vector2.one * 0.00f);
-                atlasTextureSize.Add(uvCorrection.size - Vector2.one * 0.00f);
-            }
-            faceCopy.meshData.uv2 = atlasTexturePosition.ToArray();
-            faceCopy.meshData.uv3 = atlasTextureSize.ToArray();
-        }
-    }
-
-    private static float Frac(float value)
-    {
-        return (float)(value - Math.Truncate(value));
-    }
-}
-
 public class FaceMesh
 {
     public string faceName;
