@@ -17,7 +17,7 @@ public class BSPMap
     #region Map Variables
     public string mapName { get; private set; }
     public string mapDir { get; private set; }
-    public bool combineMeshesWithSameTextures { get; private set; }
+    public static bool combineMeshesWithSameTextures;
     public static bool excludeTextures;
     public static bool excludeModels;
     public static bool excludeMapFaces;
@@ -42,13 +42,11 @@ public class BSPMap
     private int totalItemsToLoad;
     #endregion
     
-    public BSPMap(string _mapLocation, bool _combineMeshesWithSameTextures)
+    public BSPMap(string _mapLocation)
     {
         mapDir = _mapLocation.Replace("\\", "/").ToLower();
         mapName = Path.GetFileNameWithoutExtension(mapDir);
         mapDir = Path.GetDirectoryName(mapDir);
-
-        combineMeshesWithSameTextures = _combineMeshesWithSameTextures;
     }
 
     public override bool Equals(object obj)
