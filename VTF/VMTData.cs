@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class VMTData
 {
@@ -39,30 +40,31 @@ public class VMTData
 
     public static VMTData GrabVMT(VPKParser vpkParser, string location)
     {
-        string fixedLocation = location.ToLower();
-        if (fixedLocation.LastIndexOf(".") > 0)
-            fixedLocation = fixedLocation.Substring(0, fixedLocation.LastIndexOf("."));
-        if (fixedLocation.IndexOf("materials/") >= 0)
-            fixedLocation = fixedLocation.Substring(fixedLocation.IndexOf("materials/") + "materials/".Length);
-
         VMTData vmtData = null;
-        if (vmtCache.ContainsKey(fixedLocation))
+
+        Debug.Assert(!string.IsNullOrEmpty(location));
+
+        if (!string.IsNullOrEmpty(location))
         {
-            vmtData = vmtCache[fixedLocation];
-        }
-        else
-        {
-            string vmtFilePath = "/materials/" + fixedLocation + ".vtf";
-            if (vpkParser.FileExists(vmtFilePath))
+            string fixedLocation = location.Replace("\\", "/").ToLower();
+
+            if (vmtCache.ContainsKey(fixedLocation))
             {
-                vpkParser.LoadFileAsStream(vmtFilePath, (stream, origOffset, fileLength) => { vmtData = ReadAndCache(stream, origOffset + fileLength, vmtFilePath); });
+                vmtData = vmtCache[fixedLocation];
             }
             else
             {
-                UnityEngine.Debug.LogError("VMT: Could not find VMT file at FixedPath(" + vmtFilePath + ") RawPath(" + location + ")");
+                string vmtFilePath = "/materials/" + fixedLocation + ".vmt";
+                if (vpkParser.FileExists(vmtFilePath))
+                {
+                    vpkParser.LoadFileAsStream(vmtFilePath, (stream, origOffset, fileLength) => { vmtData = ReadAndCache(stream, origOffset + fileLength, vmtFilePath); });
+                }
+                else
+                {
+                    Debug.LogError("VMT: Could not find VMT file at FixedPath(" + vmtFilePath + ") RawPath(" + location + ")");
+                }
             }
         }
-
         return vmtData;
     }
 
@@ -76,7 +78,7 @@ public class VMTData
 
             while (stream.Position < endOfVMT)
             {
-                string line = DataParser.ReadNullTerminatedString(stream);
+                string line = DataParser.ReadNewlineTerminatedString(stream);
                 if (!string.IsNullOrEmpty(line) && line.IndexOf("$") > -1)
                 {
                     if (line.IndexOf("//") < 0 || line.IndexOf("$") < line.IndexOf("//"))

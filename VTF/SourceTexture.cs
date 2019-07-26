@@ -159,10 +159,11 @@ public class SourceTexture
     {
         SourceTexture srcTexture = null;
 
-        if (rawStringPath != null)
+        Debug.Assert(!string.IsNullOrEmpty(rawStringPath));
+
+        if (!string.IsNullOrEmpty(rawStringPath))
         {
-            string actualLocation = "";
-            actualLocation = LocateInVPK(vpkParser, rawStringPath);
+            string actualLocation = LocateInVPK(vpkParser, rawStringPath);
 
             if (loadedTextures.ContainsKey(actualLocation))
             {
@@ -171,6 +172,7 @@ public class SourceTexture
             else
             {
                 string vtfFilePath = "/materials/" + actualLocation + ".vtf";
+
                 if (vpkParser.FileExists(vtfFilePath))
                 {
                     vpkParser.LoadFileAsStream(vtfFilePath, (stream, origOffset, fileLength) => { srcTexture = ReadAndCache(stream, origOffset, vtfFilePath); });
@@ -187,22 +189,17 @@ public class SourceTexture
 
     public static string LocateInVPK(VPKParser vpkParser, string rawPath)
     {
-        string fixedLocation = PatchNameInVPK(vpkParser, RemoveMisleadingPath(rawPath.Replace("\\", "/").ToLower()), "vtf");
+        //string fixedLocation = PatchNameInVPK(vpkParser, RemoveMisleadingPath(rawPath.Replace("\\", "/")), "vtf");
+        string fixedLocation = rawPath.Replace("\\", "/").ToLower();
 
         if (!vpkParser.FileExists("/materials/" + fixedLocation + ".vtf"))
         {
-            fixedLocation = PatchNameInVPK(vpkParser, RemoveMisleadingPath(rawPath.Replace("\\", "/").ToLower()), "vmt");
+            //fixedLocation = PatchNameInVPK(vpkParser, RemoveMisleadingPath(rawPath.Replace("\\", "/")), "vmt");
 
-            //string[] vmtLines = null;
-            string vmtPath = "/materials/" + fixedLocation + ".vmt";
-            //if (vpkParser.FileExists(vmtPath))
-            //{
-            //    vpkParser.LoadFileAsStream(vmtPath, (stream, origOffset) => { vmtLines = ReadAllLines(stream); });
-            //}
-            //string vmtPointingTo = GetLocationFromVMT(vmtLines);
-            string vmtPointingTo = VMTData.GrabVMT(vpkParser, vmtPath).vtfPath;
-            if (vmtPointingTo.Length > 0)
-                fixedLocation = PatchNameInVPK(vpkParser, RemoveMisleadingPath(vmtPointingTo.Replace("\\", "/").ToLower()), "vtf");
+            //string vmtPath = fixedLocation;
+            fixedLocation = VMTData.GrabVMT(vpkParser, fixedLocation).vtfPath;
+            //if (vmtPointingTo.Length > 0)
+            //    fixedLocation = PatchNameInVPK(vpkParser, RemoveMisleadingPath(vmtPointingTo.Replace("\\", "/")), "vtf");
         }
 
         return fixedLocation;
@@ -210,7 +207,7 @@ public class SourceTexture
 
     public static string PatchNameInVPK(VPKParser vpkParser, string original, params string[] ext)
     {
-        string prep = original.Replace("\\", "/").ToLower();
+        string prep = original.Replace("\\", "/");
         if (prep.IndexOf("/") == 0)
             prep = prep.Substring(1);
 

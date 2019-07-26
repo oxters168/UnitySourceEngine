@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.IO;
 using System;
+using System.Collections.Generic;
 
 public class BSPParser : IDisposable
 {
@@ -29,7 +30,7 @@ public class BSPParser : IDisposable
     public texinfo_t[] texInfo;
     public dtexdata_t[] texData;
     public int[] texStringTable;
-    public string textureStringData;
+    public List<string> textureStringData;
 
     public StaticProps_t staticProps;
     #endregion
@@ -428,18 +429,15 @@ public class BSPParser : IDisposable
         return textureStringTable;
     }
 
-    private string GetTextureStringData(Stream stream)
+    private List<string> GetTextureStringData(Stream stream)
     {
         lump_t lump = lumps[43];
         stream.Position = lump.fileofs;
 
-        string textureStringData = "";
-        for (int i = 0; i < lump.filelen; i++)
+        List<string> textureStringData = new List<string>();
+        while (stream.Position < lump.fileofs + lump.filelen)
         {
-            char nextChar = DataParser.ReadChar(stream);
-
-            if (nextChar != '\0') textureStringData += nextChar;
-            else textureStringData += TEXTURE_STRING_DATA_SPLITTER;
+            textureStringData.Add(DataParser.ReadNullTerminatedString(stream));
         }
         return textureStringData;
     }

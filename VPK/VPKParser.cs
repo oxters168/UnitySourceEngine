@@ -106,7 +106,7 @@ public class VPKParser : IDisposable
 
         while (currentStream.Position < header.TreeSize)
         {
-            string extension = DataParser.ReadNullTerminatedString(currentStream);
+            string extension = DataParser.ReadNullTerminatedString(currentStream).ToLower();
             //currentPosition += bytesRead;
             if (extension.Length <= 0)
                 extension = tree.Keys.ElementAt(tree.Count - 1);
@@ -121,7 +121,7 @@ public class VPKParser : IDisposable
 
             while (true)
             {
-                string directory = DataParser.ReadNullTerminatedString(currentStream);
+                string directory = DataParser.ReadNullTerminatedString(currentStream).ToLower();
                 //currentPosition += bytesRead;
                 if (directory.Length <= 0)
                     break;
@@ -131,7 +131,7 @@ public class VPKParser : IDisposable
 
                 while (true)
                 {
-                    string fileName = DataParser.ReadNullTerminatedString(currentStream);
+                    string fileName = DataParser.ReadNullTerminatedString(currentStream).ToLower();
                     //currentPosition += bytesRead;
                     if (fileName.Length <= 0)
                         break;
@@ -193,9 +193,9 @@ public class VPKParser : IDisposable
 
         byte[] file = null;
 
-        string extFixed = extension;
-        string dirFixed = directory.Replace("\\", "/");
-        string fileNameFixed = fileName;
+        string extFixed = extension.ToLower();
+        string dirFixed = directory.Replace("\\", "/").ToLower();
+        string fileNameFixed = fileName.ToLower();
 
         if (extFixed.IndexOf(".") == 0)
             extFixed = extFixed.Substring(1);
@@ -245,9 +245,9 @@ public class VPKParser : IDisposable
     {
         CheckHeader();
 
-        string extFixed = extension;
-        string dirFixed = directory.Replace("\\", "/");
-        string fileNameFixed = fileName;
+        string extFixed = extension.ToLower();
+        string dirFixed = directory.Replace("\\", "/").ToLower();
+        string fileNameFixed = fileName.ToLower();
 
         if (extFixed.IndexOf(".") == 0)
             extFixed = extFixed.Substring(1);
@@ -303,9 +303,13 @@ public class VPKParser : IDisposable
     {
         CheckHeader();
 
-        if (tree != null && tree.ContainsKey(ext) && tree[ext].ContainsKey(dir) && tree[ext][dir].ContainsKey(fileName))
+        string extFixed = ext.ToLower();
+        string dirFixed = dir.ToLower();
+        string fileNameFixed = fileName.ToLower();
+
+        if (tree != null && tree.ContainsKey(extFixed) && tree[extFixed].ContainsKey(dirFixed) && tree[extFixed][dirFixed].ContainsKey(fileNameFixed))
         {
-            entry = tree[ext][dir][fileName];
+            entry = tree[extFixed][dirFixed][fileNameFixed];
             return true;
         }
         else
@@ -316,11 +320,14 @@ public class VPKParser : IDisposable
     }
     public bool FileExists(string path)
     {
-        string fixedPath = path.Replace("\\", "/");
-        string extension = fixedPath.Substring(fixedPath.LastIndexOf(".") + 1);
-        string directory = fixedPath.Substring(0, fixedPath.LastIndexOf("/"));
-        string fileName = fixedPath.Substring(fixedPath.LastIndexOf("/") + 1);
-        fileName = fileName.Substring(0, fileName.LastIndexOf("."));
+        string fixedPath = path.Replace("\\", "/").ToLower();
+        string extension = Path.GetExtension(fixedPath);
+        string directory = Path.GetDirectoryName(fixedPath);
+        string fileName = Path.GetFileNameWithoutExtension(fixedPath);
+        //string extension = fixedPath.Substring(fixedPath.LastIndexOf(".") + 1);
+        //string directory = fixedPath.Substring(0, fixedPath.LastIndexOf("/"));
+        //string fileName = fixedPath.Substring(fixedPath.LastIndexOf("/") + 1);
+        //fileName = fileName.Substring(0, fileName.LastIndexOf("."));
 
         return FileExists(extension, directory, fileName);
     }
@@ -328,9 +335,9 @@ public class VPKParser : IDisposable
     {
         CheckHeader();
 
-        string extFixed = extension;
-        string dirFixed = directory.Replace("\\", "/");
-        string fileNameFixed = fileName;
+        string extFixed = extension.ToLower();
+        string dirFixed = directory.Replace("\\", "/").ToLower();
+        string fileNameFixed = fileName.ToLower();
 
         if (extFixed.IndexOf(".") == 0)
             extFixed = extFixed.Substring(1);
@@ -341,11 +348,9 @@ public class VPKParser : IDisposable
             dirFixed = dirFixed.Substring(0, dirFixed.Length - 1);
 
         if (tree != null && tree.ContainsKey(extFixed) && tree[extFixed].ContainsKey(dirFixed) && tree[extFixed][dirFixed].ContainsKey(fileNameFixed))
-        {
             return true;
-        }
-
-        return false;
+        else
+            return false;
     }
     public bool DirectoryExists(string directory)
     {

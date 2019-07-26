@@ -417,7 +417,31 @@ public class DataParser
         
         return ReadNullTerminatedString(stream, out bytesRead);
     }
+    public static string ReadNewlineTerminatedString(Stream stream)
+    {
+        int bytesRead;
 
+        return ReadNewlineTerminatedString(stream, out bytesRead);
+    }
+    public static string ReadNewlineTerminatedString(Stream stream, out int bytesRead)
+    {
+        bytesRead = 0;
+        string builtString = "";
+        char nextChar = '\0';
+        do
+        {
+            if (stream.CanRead)
+                nextChar = ReadChar(stream);
+
+            if (nextChar != '\0' && nextChar != '\n')
+                builtString += nextChar;
+
+            bytesRead += 1;
+        }
+        while (nextChar != '\0' && nextChar != '\n' && stream.CanRead);
+
+        return builtString;
+    }
     public static string ReadNullTerminatedString(Stream stream, out int bytesRead)
     {
         bytesRead = 0;

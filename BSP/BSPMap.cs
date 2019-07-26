@@ -126,14 +126,19 @@ public class BSPMap
             if (bspParser.texInfo != null && face.texinfo < bspParser.texInfo.Length)
                 currentTexFlag = (texflags)bspParser.texInfo[face.texinfo].flags;
 
-            string textureLocation = bspParser.textureStringData.Substring(Mathf.Abs(bspParser.texStringTable[Mathf.Abs(bspParser.texData[Mathf.Abs(bspParser.texInfo[Mathf.Abs(face.texinfo)].texdata)].nameStringTableID)]));
-            textureLocation = textureLocation.Substring(0, textureLocation.IndexOf(BSPParser.TEXTURE_STRING_DATA_SPLITTER));
-            if (vpkParser != null)
-                textureLocation = SourceTexture.LocateInVPK(vpkParser, textureLocation);
+            int faceTexInfoIndex = face.texinfo;
+            int texDataIndex = bspParser.texInfo[faceTexInfoIndex].texdata;
+            int nameStringTableIndex = bspParser.texData[texDataIndex].nameStringTableID;
+            //int texStringTableIndex = bspParser.texStringTable[nameStringTableIndex];
+            string textureLocation = bspParser.textureStringData[nameStringTableIndex];
+
+            //if (vpkParser != null)
+            //    textureLocation = SourceTexture.PatchNameInVPK(vpkParser, SourceTexture.RemoveMisleadingPath(textureLocation.Replace("\\", "/")), "vmt");
+            //    textureLocation = SourceTexture.LocateInVPK(vpkParser, textureLocation);
 
             bool undesired = false;
             foreach (string undesiredTexture in undesiredTextures)
-                if (textureLocation.Equals(undesiredTexture))
+                if (textureLocation.Equals(undesiredTexture, StringComparison.OrdinalIgnoreCase))
                 {
                     undesired = true;
                     break;
