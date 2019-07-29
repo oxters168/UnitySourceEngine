@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+//using System.Collections.Generic;
+//using System.Linq;
 using System.IO;
 
-public class DataParser
+public static class DataParser
 {
 	public static bool bigEndian = false;
     private readonly static byte[] bitMasks = new byte[] { 0xff, 0xfe, 0xfc, 0xf8, 0xf0, 0xe0, 0xc0, 0x80 };
@@ -506,6 +506,16 @@ public class DataParser
     #endregion
 
     #region Other
+    public static byte[] GetFileHash(string filePath)
+    {
+        using (var md5 = System.Security.Cryptography.MD5.Create())
+        {
+            using (var stream = File.OpenRead(filePath))
+            {
+                return md5.ComputeHash(stream);
+            }
+        }
+    }
     /*public static string ReadDataTableString(byte[] data, int byteIndex, out int bytesRead)
     {
         bytesRead = 0;

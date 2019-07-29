@@ -6,9 +6,7 @@ using System.Linq;
 using System;
 using UnityHelpers;
 
-#pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
 public class BSPMap
-#pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
 {
     public readonly string[] undesiredTextures = new string[] { "TOOLS/TOOLSAREAPORTAL", "TOOLS/TOOLSBLACK", "TOOLS/CLIMB", "TOOLS/CLIMB_ALPHA", "TOOLS/FOGVOLUME", "TOOLS/TOOLSAREAPORTAL-DX10", "TOOLS/TOOLSBLACK", "TOOLS/TOOLSBLOCK_LOS",
                 "TOOLS/TOOLSBLOCK_LOS-DX10", "TOOLS/TOOLSBLOCKBOMB", "TOOLS/TOOLSBLOCKBULLETS", "TOOLS/TOOLSBLOCKBULLETS-DX10", "TOOLS/TOOLSBLOCKLIGHT", "TOOLS/TOOLSCLIP", "TOOLS/TOOLSCLIP-DX10", "TOOLS/TOOLSDOTTED", "TOOLS/TOOLSFOG", "TOOLS/TOOLSFOG-DX10",
@@ -52,11 +50,13 @@ public class BSPMap
 
     public override bool Equals(object obj)
     {
-        if (obj == null || !(obj is BSPMap))
-            return false;
-
-        return mapName.Equals(((BSPMap)obj).mapName, StringComparison.InvariantCultureIgnoreCase);
+        return obj != null && (obj is BSPMap) && mapName.Equals(((BSPMap)obj).mapName, StringComparison.OrdinalIgnoreCase);
     }
+    public override int GetHashCode()
+    {
+        return -1521134295 + EqualityComparer<string>.Default.GetHashCode(mapName);
+    }
+
     public void Unload()
     {
         isParsed = false;

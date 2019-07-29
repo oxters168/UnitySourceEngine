@@ -164,6 +164,8 @@ public class SourceTexture
         if (!string.IsNullOrEmpty(rawStringPath))
         {
             string actualLocation = LocateInVPK(vpkParser, rawStringPath);
+            if (string.IsNullOrEmpty(actualLocation))
+                actualLocation = rawStringPath;
 
             if (loadedTextures.ContainsKey(actualLocation))
             {
@@ -197,7 +199,7 @@ public class SourceTexture
             //fixedLocation = PatchNameInVPK(vpkParser, RemoveMisleadingPath(rawPath.Replace("\\", "/")), "vmt");
 
             //string vmtPath = fixedLocation;
-            fixedLocation = VMTData.GrabVMT(vpkParser, fixedLocation).vtfPath;
+            fixedLocation = VMTData.GrabVMT(vpkParser, fixedLocation)?.vtfPath;
             //if (vmtPointingTo.Length > 0)
             //    fixedLocation = PatchNameInVPK(vpkParser, RemoveMisleadingPath(vmtPointingTo.Replace("\\", "/")), "vtf");
         }
