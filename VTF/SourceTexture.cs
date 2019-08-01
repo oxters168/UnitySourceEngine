@@ -177,7 +177,11 @@ public class SourceTexture
 
                 if (vpkParser.FileExists(vtfFilePath))
                 {
-                    vpkParser.LoadFileAsStream(vtfFilePath, (stream, origOffset, fileLength) => { srcTexture = ReadAndCache(stream, origOffset, vtfFilePath); });
+                    try
+                    {
+                        vpkParser.LoadFileAsStream(vtfFilePath, (stream, origOffset, fileLength) => { srcTexture = ReadAndCache(stream, origOffset, vtfFilePath); });
+                    }
+                    catch (Exception) { }
                 }
                 else
                 {

@@ -125,9 +125,13 @@ public class SourceModel
                         using (VVDParser vvd = new VVDParser())
                         using (VTXParser vtx = new VTXParser())
                         {
-                            vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
-                            vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, origOffset); });
-                            vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
+                            try
+                            {
+                                vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
+                                vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, origOffset); });
+                                vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
+                            }
+                            catch (System.Exception) { }
 
                             if (mdl.bodyParts == null)
                             {

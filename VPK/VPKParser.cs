@@ -70,7 +70,7 @@ public class VPKParser : IDisposable
     }
     private void ParseHeader()
     {
-        string archivePath = GetArchivePath(DIR_PAK);
+        string archivePath = Path.Combine(directoryLocation, GetArchiveName(DIR_PAK) + ".vpk");
 
         if (File.Exists(archivePath))
         {
@@ -101,13 +101,9 @@ public class VPKParser : IDisposable
     }
     private void ParseTree(Stream currentStream)
     {
-        //long currentPosition = currentStream.Position;
-        //int bytesRead;
-
         while (currentStream.Position < header.TreeSize)
         {
             string extension = DataParser.ReadNullTerminatedString(currentStream).ToLower();
-            //currentPosition += bytesRead;
             if (extension.Length <= 0)
                 extension = tree.Keys.ElementAt(tree.Count - 1);
             else
@@ -116,26 +112,21 @@ public class VPKParser : IDisposable
                 {
                     tree.Add(extension, new Dictionary<string, Dictionary<string, VPKDirectoryEntry>>());
                 }
-                //currentPosition += extension.Length;
             }
 
             while (true)
             {
                 string directory = DataParser.ReadNullTerminatedString(currentStream).ToLower();
-                //currentPosition += bytesRead;
                 if (directory.Length <= 0)
                     break;
                 if (!tree[extension].ContainsKey(directory))
                     tree[extension].Add(directory, new Dictionary<string, VPKDirectoryEntry>());
-                //currentPosition += directory.Length;
 
                 while (true)
                 {
                     string fileName = DataParser.ReadNullTerminatedString(currentStream).ToLower();
-                    //currentPosition += bytesRead;
                     if (fileName.Length <= 0)
                         break;
-                    //currentPosition += file.Length;
 
                     VPKDirectoryEntry dirEntry = new VPKDirectoryEntry();
                     dirEntry.CRC = DataParser.ReadUInt(currentStream);
@@ -144,31 +135,16 @@ public class VPKParser : IDisposable
                     dirEntry.EntryOffset = DataParser.ReadUInt(currentStream);
                     dirEntry.EntryLength = DataParser.ReadUInt(currentStream);
                     ushort terminator = DataParser.ReadUShort(currentStream);
-                    //currentPosition += (4 + 2 + 2 + 4 + 4 + 2);
 
                     long currentStreamPosition = currentStream.Position;
                     if (dirEntry.PreloadBytes > 0)
                     {
-                        //UnityEngine.Debug.Log("Found preload data for (" + directory + "/" + fileName + "." + extension + ")");
-                        //dirEntry.ArchiveIndex = DIR_PAK;
-                        //dirEntry.EntryOffset = (uint)currentStreamPosition;
-
                         if (extension.ToLower().Equals("vmt"))
                         {
-                            //byte[] vmtData = new byte[dirEntry.PreloadBytes];
-                            //currentStream.Read(vmtData, 0, dirEntry.PreloadBytes);
-                            //UnityEngine.Debug.Log("Preloading " + directory + "/" + fileName + "." + extension);
                             VMTData.ReadAndCache(currentStream, currentStream.Position + dirEntry.PreloadBytes, directory + "/" + fileName + "." + extension);
                         }
                     }
-                    //dirEntry.PreloadData = new byte[dirEntry.PreloadBytes];
-                    //currentStream.Read(dirEntry.PreloadData, 0, dirEntry.PreloadBytes);
-                    //for (int i = 0; i < dirEntry.PreloadData.Length; i++)
-                    //{
-                    //    dirEntry.PreloadData[i] = DataParser.ReadByte(currentStream);
-                    //}
                     currentStream.Position = currentStreamPosition + dirEntry.PreloadBytes;
-                    //currentPosition += dirEntry.PreloadBytes;
 
                     if (!tree[extension][directory].ContainsKey(fileName))
                         tree[extension][directory].Add(fileName, dirEntry);
@@ -177,21 +153,19 @@ public class VPKParser : IDisposable
         }
     }
     
-    public byte[] LoadFile(string path)
+    public string LocateInArchive(string filePath)
     {
-        string fixedPath = path.Replace("\\", "/");
-        string extension = fixedPath.Substring(fixedPath.LastIndexOf(".") + 1);
-        string directory = fixedPath.Substring(0, fixedPath.LastIndexOf("/"));
-        string fileName = fixedPath.Substring(fixedPath.LastIndexOf("/") + 1);
-        fileName = fileName.Substring(0, fileName.LastIndexOf("."));
+        string extension = Path.GetExtension(filePath);
+        if (extension.Length > 0)
+            extension = extension.Substring(1);
+        string directory = Path.GetDirectoryName(filePath);
+        string fileName = Path.GetFileNameWithoutExtension(filePath);
 
-        return LoadFile(extension, directory, fileName);
+        return LocateInArchive(extension, directory, fileName);
     }
-    public byte[] LoadFile(string extension, string directory, string fileName)
+    public string LocateInArchive(string extension, string directory, string fileName)
     {
-        CheckHeader();
-
-        byte[] file = null;
+        string archiveName = null;
 
         string extFixed = extension.ToLower();
         string dirFixed = directory.Replace("\\", "/").ToLower();
@@ -207,30 +181,12 @@ public class VPKParser : IDisposable
         VPKDirectoryEntry entry;
         if (GetEntry(extFixed, dirFixed, fileNameFixed, out entry))
         {
-            if (entry.EntryLength <= 0)
-                return entry.PreloadData;
-
-            string archivePath = GetArchivePath(entry.ArchiveIndex);
-            using (var currentStream = new FileStream(archivePath, FileMode.Open, FileAccess.Read))
-            {
-                #region Set Position in Stream
-                if (entry.ArchiveIndex == DIR_PAK)
-                    currentStream.Position = headerSize + header.TreeSize;
-                else currentStream.Position = 0;
-                    currentStream.Position += entry.EntryOffset;
-                #endregion
-
-                #region Read File Bytes
-                file = new byte[(int)entry.EntryLength];
-                currentStream.Read(file, 0, file.Length);
-                //file = DataParser.ReadBytes(currentStream, (int)entry.EntryLength);
-                #endregion
-            }
+            archiveName = GetArchiveName(entry.ArchiveIndex);
         }
 
-        return file;
+        return archiveName;
     }
-    public void LoadFileAsStream(string path, Action<Stream, int, int> streamActions)
+    public string LoadFileAsStream(string path, Action<Stream, int, int> streamActions)
     {
         string fixedPath = path.Replace("\\", "/");
         string extension = fixedPath.Substring(fixedPath.LastIndexOf(".") + 1);
@@ -238,11 +194,12 @@ public class VPKParser : IDisposable
         string fileName = fixedPath.Substring(fixedPath.LastIndexOf("/") + 1);
         fileName = fileName.Substring(0, fileName.LastIndexOf("."));
 
-        LoadFileAsStream(extension, directory, fileName, streamActions);
+        return LoadFileAsStream(extension, directory, fileName, streamActions);
     }
-
-    public void LoadFileAsStream(string extension, string directory, string fileName, Action<Stream, int, int> streamActions)
+    public string LoadFileAsStream(string extension, string directory, string fileName, Action<Stream, int, int> streamActions)
     {
+        string archiveName = null;
+
         CheckHeader();
 
         string extFixed = extension.ToLower();
@@ -270,16 +227,19 @@ public class VPKParser : IDisposable
                 fileOffset += (int)entry.EntryOffset;
             #endregion
 
-            string archivePath = GetArchivePath(entry.ArchiveIndex);
+            archiveName = GetArchiveName(entry.ArchiveIndex);
+            string archivePath = Path.Combine(directoryLocation, archiveName + ".vpk");
             using (FileStream currentStream = new FileStream(archivePath, FileMode.Open, FileAccess.Read))
             {
                 currentStream.Position = fileOffset;
                 streamActions(currentStream, fileOffset, (int)entry.EntryLength);
             }
         }
+
+        return archiveName;
     }
 
-    private string GetArchivePath(ushort archiveIndex)
+    private string GetArchiveName(ushort archiveIndex)
     {
         string vpkPakDir = "_";
         if (archiveIndex == DIR_PAK)
@@ -295,9 +255,8 @@ public class VPKParser : IDisposable
             else
                 vpkPakDir += archiveIndex;
         }
-        vpkPakDir += ".vpk";
 
-        return Path.Combine(directoryLocation, vpkStartName + vpkPakDir);
+        return vpkStartName + vpkPakDir;
     }
     private bool GetEntry(string ext, string dir, string fileName, out VPKDirectoryEntry entry)
     {

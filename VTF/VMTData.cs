@@ -57,7 +57,11 @@ public class VMTData
                 string vmtFilePath = "/materials/" + fixedLocation + ".vmt";
                 if (vpkParser.FileExists(vmtFilePath))
                 {
-                    vpkParser.LoadFileAsStream(vmtFilePath, (stream, origOffset, fileLength) => { vmtData = ReadAndCache(stream, origOffset + fileLength, vmtFilePath); });
+                    try
+                    {
+                        vpkParser.LoadFileAsStream(vmtFilePath, (stream, origOffset, fileLength) => { vmtData = ReadAndCache(stream, origOffset + fileLength, vmtFilePath); });
+                    }
+                    catch (System.Exception) { }
                 }
                 else
                 {

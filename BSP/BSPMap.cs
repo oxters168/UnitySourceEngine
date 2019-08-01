@@ -36,6 +36,7 @@ public class BSPMap
     public bool isBuilding { get; private set; }
     public float currentProgress { get; private set; }
     public string currentMessage { get; private set; }
+    public float PercentLoaded { get { return (float)totalItemsLoaded / totalItemsToLoad; } }
 
     private int totalItemsLoaded = 0;
     private int totalItemsToLoad;
@@ -85,6 +86,41 @@ public class BSPMap
         gameObject = null;
     }
 
+    public List<string> GetDependencies()
+    {
+        List<string> dependencies = new List<string>();
+        using (VPKParser vpkParser = new VPKParser(vpkLoc))
+        using (BSPParser bspParser = new BSPParser(Path.Combine(mapDir, mapName + ".bsp")))
+        {
+            bool validVPK = vpkParser.IsValid();
+            if (!validVPK)
+                return null;
+
+            bspParser.ParseData();
+
+            foreach (dface_t face in bspParser.faces)
+            {
+                texflags currentTexFlags = GetFaceTextureFlags(face, bspParser);
+                string textureLocation = GetFaceTextureLocation(face, bspParser);
+
+                if (!IsUndesiredTexture(textureLocation, currentTexFlags))
+                {
+                    string dependency;
+                    if (!vpkParser.FileExists("/materials/" + textureLocation + ".vtf"))
+                        dependency = vpkParser.LocateInArchive("/materials/" + textureLocation + ".vmt");
+                    else
+                        dependency = vpkParser.LocateInArchive("/materials/" + textureLocation + ".vtf");
+
+                    if (!string.IsNullOrEmpty(dependency) && !dependencies.Contains(dependency))
+                        dependencies.Add(dependency);
+                }
+            }
+
+            //if (validVPK && !excludeModels)
+            //    ReadStaticProps(bspParser, vpkParser, onProgressChanged);
+        }
+        return dependencies;
+    }
     public void ParseFile(Action<float, string> onProgressChanged = null, Action onFinished = null)
     {
         isParsed = false;
@@ -117,38 +153,42 @@ public class BSPMap
         isParsing = false;
         isParsed = true;
     }
+    private texflags GetFaceTextureFlags(dface_t face, BSPParser bspParser)
+    {
+        texflags currentTexFlag = texflags.SURF_SKIP;
+        if (bspParser.texInfo != null && face.texinfo < bspParser.texInfo.Length)
+            currentTexFlag = (texflags)bspParser.texInfo[face.texinfo].flags;
+        return currentTexFlag;
+    }
+    private string GetFaceTextureLocation(dface_t face, BSPParser bspParser)
+    {
+        int faceTexInfoIndex = face.texinfo;
+        int texDataIndex = bspParser.texInfo[faceTexInfoIndex].texdata;
+        int nameStringTableIndex = bspParser.texData[texDataIndex].nameStringTableID;
+        return bspParser.textureStringData[nameStringTableIndex];
+    }
+    private bool IsUndesiredTexture(string textureLocation, texflags tf)
+    {
+        bool undesired = false;
+        foreach (string undesiredTexture in undesiredTextures)
+            if (textureLocation.Equals(undesiredTexture, StringComparison.OrdinalIgnoreCase))
+            {
+                undesired = true;
+                break;
+            }
+        return undesired || (tf & texflags.SURF_SKY2D) == texflags.SURF_SKY2D || (tf & texflags.SURF_SKY) == texflags.SURF_SKY || (tf & texflags.SURF_NODRAW) == texflags.SURF_NODRAW || (tf & texflags.SURF_SKIP) == texflags.SURF_SKIP;
+    }
     private void ReadFaces(BSPParser bspParser, VPKParser vpkParser = null, Action<float, string> onProgressChanged = null)
     {
         foreach (dface_t face in bspParser.faces)
         {
-            texflags currentTexFlag = texflags.SURF_SKIP;
-            #region Get Texture Info
-            if (bspParser.texInfo != null && face.texinfo < bspParser.texInfo.Length)
-                currentTexFlag = (texflags)bspParser.texInfo[face.texinfo].flags;
+            texflags currentTexFlags = GetFaceTextureFlags(face, bspParser);
+            string textureLocation = GetFaceTextureLocation(face, bspParser);
 
-            int faceTexInfoIndex = face.texinfo;
-            int texDataIndex = bspParser.texInfo[faceTexInfoIndex].texdata;
-            int nameStringTableIndex = bspParser.texData[texDataIndex].nameStringTableID;
-            //int texStringTableIndex = bspParser.texStringTable[nameStringTableIndex];
-            string textureLocation = bspParser.textureStringData[nameStringTableIndex];
-
-            //if (vpkParser != null)
-            //    textureLocation = SourceTexture.PatchNameInVPK(vpkParser, SourceTexture.RemoveMisleadingPath(textureLocation.Replace("\\", "/")), "vmt");
-            //    textureLocation = SourceTexture.LocateInVPK(vpkParser, textureLocation);
-
-            bool undesired = false;
-            foreach (string undesiredTexture in undesiredTextures)
-                if (textureLocation.Equals(undesiredTexture, StringComparison.OrdinalIgnoreCase))
-                {
-                    undesired = true;
-                    break;
-                }
-            #endregion
-
-            if (!undesired && (currentTexFlag & texflags.SURF_SKY2D) != texflags.SURF_SKY2D && (currentTexFlag & texflags.SURF_SKY) != texflags.SURF_SKY && (currentTexFlag & texflags.SURF_NODRAW) != texflags.SURF_NODRAW && (currentTexFlag & texflags.SURF_SKIP) != texflags.SURF_SKIP)
+            if (!IsUndesiredTexture(textureLocation, currentTexFlags))
             {
                 FaceMesh currentFace = new FaceMesh();
-                currentFace.textureFlag = currentTexFlag;
+                currentFace.textureFlag = currentTexFlags;
 
                 currentFace.s = new Vector3(bspParser.texInfo[face.texinfo].textureVecs[0][0], bspParser.texInfo[face.texinfo].textureVecs[0][2], bspParser.texInfo[face.texinfo].textureVecs[0][1]);
                 currentFace.t = new Vector3(bspParser.texInfo[face.texinfo].textureVecs[1][0], bspParser.texInfo[face.texinfo].textureVecs[1][2], bspParser.texInfo[face.texinfo].textureVecs[1][1]);
