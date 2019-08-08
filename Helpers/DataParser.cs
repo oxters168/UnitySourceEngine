@@ -516,6 +516,21 @@ public static class DataParser
             }
         }
     }
+    public static void CopyTo(this Stream from, Stream to, long amount, int bufferSize = 81920)
+    {
+        long totalCopied = 0;
+        byte[] buffer = new byte[bufferSize];
+        int actualAmountRead;
+        do
+        {
+            int readLength = (int)Math.Min(amount - totalCopied, bufferSize);
+            actualAmountRead = from.Read(buffer, 0, readLength);
+            if (actualAmountRead > 0)
+                to.Write(buffer, 0, actualAmountRead);
+            totalCopied += actualAmountRead;
+        }
+        while (actualAmountRead > 0);
+    }
     /*public static string ReadDataTableString(byte[] data, int byteIndex, out int bytesRead)
     {
         bytesRead = 0;
