@@ -122,33 +122,35 @@ public class VPKParser : IDisposable
                 if (!tree[extension].ContainsKey(directory))
                     tree[extension].Add(directory, new Dictionary<string, VPKDirectoryEntry>());
 
-                while (true)
+                string fileName;
+                do
                 {
-                    string fileName = DataParser.ReadNullTerminatedString(currentStream).ToLower();
-                    if (fileName.Length <= 0)
-                        break;
-
-                    VPKDirectoryEntry dirEntry = new VPKDirectoryEntry();
-                    dirEntry.CRC = DataParser.ReadUInt(currentStream);
-                    dirEntry.PreloadBytes = DataParser.ReadUShort(currentStream);
-                    dirEntry.ArchiveIndex = DataParser.ReadUShort(currentStream);
-                    dirEntry.EntryOffset = DataParser.ReadUInt(currentStream);
-                    dirEntry.EntryLength = DataParser.ReadUInt(currentStream);
-                    ushort terminator = DataParser.ReadUShort(currentStream);
-
-                    long currentStreamPosition = currentStream.Position;
-                    if (dirEntry.PreloadBytes > 0)
+                    fileName = DataParser.ReadNullTerminatedString(currentStream).ToLower();
+                    if (!string.IsNullOrEmpty(fileName))
                     {
-                        if (extension.ToLower().Equals("vmt"))
-                        {
-                            VMTData.ReadAndCache(currentStream, currentStream.Position + dirEntry.PreloadBytes, directory + "/" + fileName + "." + extension);
-                        }
-                    }
-                    currentStream.Position = currentStreamPosition + dirEntry.PreloadBytes;
+                        VPKDirectoryEntry dirEntry = new VPKDirectoryEntry();
+                        dirEntry.CRC = DataParser.ReadUInt(currentStream);
+                        dirEntry.PreloadBytes = DataParser.ReadUShort(currentStream);
+                        dirEntry.ArchiveIndex = DataParser.ReadUShort(currentStream);
+                        dirEntry.EntryOffset = DataParser.ReadUInt(currentStream);
+                        dirEntry.EntryLength = DataParser.ReadUInt(currentStream);
+                        ushort terminator = DataParser.ReadUShort(currentStream);
 
-                    if (!tree[extension][directory].ContainsKey(fileName))
-                        tree[extension][directory].Add(fileName, dirEntry);
+                        long currentStreamPosition = currentStream.Position;
+                        if (dirEntry.PreloadBytes > 0)
+                        {
+                            if (extension.ToLower().Equals("vmt"))
+                            {
+                                VMTData.ReadAndCache(currentStream, currentStream.Position + dirEntry.PreloadBytes, directory + "/" + fileName + "." + extension);
+                            }
+                        }
+                        currentStream.Position = currentStreamPosition + dirEntry.PreloadBytes;
+
+                        if (!tree[extension][directory].ContainsKey(fileName))
+                            tree[extension][directory].Add(fileName, dirEntry);
+                    }
                 }
+                while (!string.IsNullOrEmpty(fileName));
             }
         }
     }

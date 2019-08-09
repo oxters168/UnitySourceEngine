@@ -17,10 +17,10 @@
 
     public const ushort Terminator = 0xffff;
 
-    public byte[] PreloadData;
+    //public byte[] PreloadData;
 
     public void Dispose()
     {
-        PreloadData = null;
+        //PreloadData = null;
     }
 }
