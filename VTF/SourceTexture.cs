@@ -795,7 +795,7 @@ public class SourceTexture
         // return the memory requirements
         return ComputeImageBufferSize(uiMipmapWidth, uiMipmapHeight, uiMipmapDepth, ImageFormat);
     }
-    private static Color[] RotateProperly(Color[] vtfColors, uint width, uint height)
+    public static Color[] RotateProperly(Color[] vtfColors, uint width, uint height)
     {
         Color[] proper = vtfColors.Reverse().ToArray();
         for(uint row = 0; row < height; row++)
