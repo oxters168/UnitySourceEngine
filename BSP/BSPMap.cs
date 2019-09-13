@@ -549,10 +549,10 @@ public class BSPMap
         //SaveUVValues("C:\\Users\\oxter\\Documents\\csgo\\csgoMapModels\\" + mapName + "_UV.txt");
         #endif
 
-        outputAction?.Invoke(gameObject);
-
         isBuilding = false;
         isBuilt = true;
+
+        outputAction?.Invoke(gameObject);
     }
 }
 
