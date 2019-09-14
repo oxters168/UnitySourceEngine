@@ -1,5 +1,8 @@
-﻿public class mstudioactivitymodifier_t
+﻿namespace UnitySourceEngine
 {
-    public string name;
-    public int nameOffset;
+    public class mstudioactivitymodifier_t
+    {
+        public string name;
+        public int nameOffset;
+    }
 }

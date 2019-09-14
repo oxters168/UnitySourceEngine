@@ -1,10 +1,13 @@
-﻿public class mstudioanim_valueptr_t
+﻿namespace UnitySourceEngine
 {
-    public short animXValueOffset;
-    public short animYValueOffset;
-    public short animZValueOffset;
+    public class mstudioanim_valueptr_t
+    {
+        public short animXValueOffset;
+        public short animYValueOffset;
+        public short animZValueOffset;
 
-    public mstudioanimvalue_t theAnimXValues;
-    public mstudioanimvalue_t theAnimYValues;
-    public mstudioanimvalue_t theAnimZValues;
+        public mstudioanimvalue_t theAnimXValues;
+        public mstudioanimvalue_t theAnimYValues;
+        public mstudioanimvalue_t theAnimZValues;
+    }
 }

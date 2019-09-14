@@ -1,11 +1,14 @@
-﻿public class StaticProps_t
+﻿namespace UnitySourceEngine
 {
-    public StaticPropDictLump_t staticPropDict;
-    public StaticPropLeafLump_t staticPropLeaf;
-    public StaticPropLump_t[] staticPropInfo;
-
-    public void Dispose()
+    public class StaticProps_t
     {
-        staticPropInfo = null;
+        public StaticPropDictLump_t staticPropDict;
+        public StaticPropLeafLump_t staticPropLeaf;
+        public StaticPropLump_t[] staticPropInfo;
+
+        public void Dispose()
+        {
+            staticPropInfo = null;
+        }
     }
 }

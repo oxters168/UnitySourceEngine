@@ -1,13 +1,16 @@
-﻿// 16 bytes
-public struct mstudioboneweight_t
+﻿namespace UnitySourceEngine
 {
-    public float[] weight; //(size of MAX_NUM_BONES_PER_VERT = 3)
-    public char[] bone; //(size of MAX_NUM_BONES_PER_VERT = 3)
-    public byte numbones;
-
-    public void Dispose()
+    // 16 bytes
+    public struct mstudioboneweight_t
     {
-        weight = null;
-        bone = null;
+        public float[] weight; //(size of MAX_NUM_BONES_PER_VERT = 3)
+        public char[] bone; //(size of MAX_NUM_BONES_PER_VERT = 3)
+        public byte numbones;
+
+        public void Dispose()
+        {
+            weight = null;
+            bone = null;
+        }
     }
 }

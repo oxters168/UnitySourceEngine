@@ -1,16 +1,19 @@
-﻿public class mstudiotexture_t
+﻿namespace UnitySourceEngine
 {
-    public string name;
-    public int nameOffset;
-    public int flags;
-    public int used;
-    public int unused1;
-    public int materialP;
-    public int clientMaterialP;
-    public int[] unused; //SizeOf 10
-
-    public void Dispose()
+    public class mstudiotexture_t
     {
-        unused = null;
+        public string name;
+        public int nameOffset;
+        public int flags;
+        public int used;
+        public int unused1;
+        public int materialP;
+        public int clientMaterialP;
+        public int[] unused; //SizeOf 10
+
+        public void Dispose()
+        {
+            unused = null;
+        }
     }
 }

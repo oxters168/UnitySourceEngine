@@ -1,10 +1,13 @@
-﻿public class mstudio_meshvertexdata_t
+﻿namespace UnitySourceEngine
 {
-    public int modelVertexDataP;
-    public int[] lodVertexCount;
-
-    public void Dispose()
+    public class mstudio_meshvertexdata_t
     {
-        lodVertexCount = null;
+        public int modelVertexDataP;
+        public int[] lodVertexCount;
+
+        public void Dispose()
+        {
+            lodVertexCount = null;
+        }
     }
 }

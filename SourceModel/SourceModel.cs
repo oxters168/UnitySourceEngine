@@ -1,284 +1,287 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-public class SourceModel
+namespace UnitySourceEngine
 {
-    public static Material modelMaterial;
-    private static Dictionary<string, SourceModel> loadedModels = new Dictionary<string, SourceModel>();
-    private static GameObject staticPropLibrary;
-    public static bool excludeTextures;
-
-    public string modelName { get; private set; }
-    public string modelLocation { get; private set; }
-    private string modelKey { get { return modelLocation + modelName; } }
-
-    private GameObject modelPrefab;
-    private List<FaceMesh> faces = new List<FaceMesh>();
-    private SourceTexture[] modelTextures;
-    private List<Material> materialsCreated = new List<Material>();
-
-    public Vector3 origin, angles;
-
-    private SourceModel(string name, string location)
+    public class SourceModel
     {
-        modelName = name;
-        modelLocation = location;
+        public static Material modelMaterial;
+        private static Dictionary<string, SourceModel> loadedModels = new Dictionary<string, SourceModel>();
+        private static GameObject staticPropLibrary;
+        public static bool excludeTextures;
 
-        loadedModels.Add(modelKey, this);
-    }
+        public string modelName { get; private set; }
+        public string modelLocation { get; private set; }
+        private string modelKey { get { return modelLocation + modelName; } }
 
-    public static void ClearCache()
-    {
-        foreach (var modPair in loadedModels)
-            modPair.Value.Dispose();
-        loadedModels.Clear();
-        loadedModels = new Dictionary<string, SourceModel>();
-    }
-    public void Dispose()
-    {
-        if (loadedModels != null && loadedModels.ContainsKey(modelKey))
-            loadedModels.Remove(modelKey);
+        private GameObject modelPrefab;
+        private List<FaceMesh> faces = new List<FaceMesh>();
+        private SourceTexture[] modelTextures;
+        private List<Material> materialsCreated = new List<Material>();
 
-        if (materialsCreated != null)
-            foreach (Material mat in materialsCreated)
-                if (mat != null)
-                    Object.Destroy(mat);
-        materialsCreated = new List<Material>();
+        public Vector3 origin, angles;
 
-        if (faces != null)
-            foreach (FaceMesh face in faces)
-                face?.Dispose();
-        faces = null;
-
-        if (modelTextures != null)
-            foreach (SourceTexture texture in modelTextures)
-                texture?.Dispose();
-        modelTextures = null;
-
-        if (modelPrefab != null)
-            Object.Destroy(modelPrefab);
-        modelPrefab = null;
-    }
-
-    public static SourceModel GrabModel(VPKParser vpkParser, string fullModelPath)
-    {
-        SourceModel model = null;
-
-        string modelName = "";
-        string modelLocation = fullModelPath.Replace("\\", "/").ToLower();
-
-        if(modelLocation.IndexOf("/") > -1)
+        private SourceModel(string name, string location)
         {
-            modelName = modelLocation.Substring(modelLocation.LastIndexOf("/") + 1);
-            modelLocation = modelLocation.Substring(0, modelLocation.LastIndexOf("/") + 1);
+            modelName = name;
+            modelLocation = location;
 
-            model = GrabModel(vpkParser, modelName, modelLocation);
+            loadedModels.Add(modelKey, this);
         }
 
-        return model;
-    }
-    public static SourceModel GrabModel(VPKParser vpkParser, string name, string location)
-    {
-        SourceModel model = null;
-
-        string fixedModelName = name.ToLower();
-        string fixedModelLocation = location.Replace("\\", "/").ToLower();
-
-        if (fixedModelName.LastIndexOf(".") > -1 && fixedModelName.LastIndexOf(".") == fixedModelName.Length - 4)
-            fixedModelName = fixedModelName.Substring(0, fixedModelName.LastIndexOf("."));
-        if (fixedModelLocation.LastIndexOf("/") != fixedModelLocation.Length - 1)
-            fixedModelLocation = fixedModelLocation + "/";
-        if (fixedModelLocation.IndexOf("models/") > -1)
-            fixedModelLocation = fixedModelLocation.Substring(fixedModelLocation.IndexOf("models/") + "models/".Length);
-
-        if (loadedModels.ContainsKey(fixedModelLocation + fixedModelName))
+        public static void ClearCache()
         {
-            model = loadedModels[fixedModelLocation + fixedModelName];
+            foreach (var modPair in loadedModels)
+                modPair.Value.Dispose();
+            loadedModels.Clear();
+            loadedModels = new Dictionary<string, SourceModel>();
         }
-        else
+        public void Dispose()
         {
-            model = new SourceModel(fixedModelName, fixedModelLocation);
-            model.Parse(vpkParser);
+            if (loadedModels != null && loadedModels.ContainsKey(modelKey))
+                loadedModels.Remove(modelKey);
+
+            if (materialsCreated != null)
+                foreach (Material mat in materialsCreated)
+                    if (mat != null)
+                        Object.Destroy(mat);
+            materialsCreated = new List<Material>();
+
+            if (faces != null)
+                foreach (FaceMesh face in faces)
+                    face?.Dispose();
+            faces = null;
+
+            if (modelTextures != null)
+                foreach (SourceTexture texture in modelTextures)
+                    texture?.Dispose();
+            modelTextures = null;
+
+            if (modelPrefab != null)
+                Object.Destroy(modelPrefab);
+            modelPrefab = null;
         }
 
-        return model;
-    }
-    private void Parse(VPKParser vpkParser)
-    {
-        if (vpkParser != null)
+        public static SourceModel GrabModel(VPKParser vpkParser, string fullModelPath)
         {
-            string modelsVPKDir = ((modelLocation.IndexOf("/") == 0) ? "/models" : "/models/");
-            string mdlPath = modelsVPKDir + modelLocation + modelName + ".mdl";
-            string vvdPath = modelsVPKDir + modelLocation + modelName + ".vvd";
-            string vtxPath = modelsVPKDir + modelLocation + modelName + ".vtx";
+            SourceModel model = null;
 
-            if (vpkParser.FileExists(mdlPath))
+            string modelName = "";
+            string modelLocation = fullModelPath.Replace("\\", "/").ToLower();
+
+            if (modelLocation.IndexOf("/") > -1)
             {
-                if (vpkParser.FileExists(vvdPath))
-                {
-                    if (!vpkParser.FileExists(vtxPath))
-                        vtxPath = modelsVPKDir + modelLocation + modelName + ".dx90.vtx";
+                modelName = modelLocation.Substring(modelLocation.LastIndexOf("/") + 1);
+                modelLocation = modelLocation.Substring(0, modelLocation.LastIndexOf("/") + 1);
 
-                    if (vpkParser.FileExists(vtxPath))
-                    {
-                        using (MDLParser mdl = new MDLParser())
-                        using (VVDParser vvd = new VVDParser())
-                        using (VTXParser vtx = new VTXParser())
-                        {
-                            try
-                            {
-                                vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
-                                vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, origOffset); });
-                                vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
-                            }
-                            catch (System.Exception) { }
+                model = GrabModel(vpkParser, modelName, modelLocation);
+            }
 
-                            if (mdl.bodyParts == null)
-                            {
-                                Debug.LogError("SourceModel: Could not find body parts of " + modelKey);
-                                return;
-                            }
+            return model;
+        }
+        public static SourceModel GrabModel(VPKParser vpkParser, string name, string location)
+        {
+            SourceModel model = null;
 
-                            GetTextures(mdl, vpkParser);
-                            ReadFaceMeshes(mdl, vvd, vtx, vpkParser);
-                        }
-                    }
-                    else
-                        Debug.LogError("SourceModel: Could not find vtx file in vpk (" + vtxPath + ")");
-                }
-                else
-                    Debug.LogError("SourceModel: Could not find vvd file in vpk (" + vvdPath + ")");
+            string fixedModelName = name.ToLower();
+            string fixedModelLocation = location.Replace("\\", "/").ToLower();
+
+            if (fixedModelName.LastIndexOf(".") > -1 && fixedModelName.LastIndexOf(".") == fixedModelName.Length - 4)
+                fixedModelName = fixedModelName.Substring(0, fixedModelName.LastIndexOf("."));
+            if (fixedModelLocation.LastIndexOf("/") != fixedModelLocation.Length - 1)
+                fixedModelLocation = fixedModelLocation + "/";
+            if (fixedModelLocation.IndexOf("models/") > -1)
+                fixedModelLocation = fixedModelLocation.Substring(fixedModelLocation.IndexOf("models/") + "models/".Length);
+
+            if (loadedModels.ContainsKey(fixedModelLocation + fixedModelName))
+            {
+                model = loadedModels[fixedModelLocation + fixedModelName];
             }
             else
-                Debug.LogError("SourceModel: Could not find mdl file in vpk (" + mdlPath + ")");
-        }
-        else
-            Debug.Log("SourceModel: VPK parser is null");
-    }
-    private void GetTextures(MDLParser mdl, VPKParser vpkParser)
-    {
-        if (mdl != null && vpkParser != null)
-        {
-            try
             {
-                #region Grabbing Textures
-                modelTextures = new SourceTexture[mdl.textures.Length];
-                for (int i = 0; i < modelTextures.Length; i++)
-                {
-                    string texturePath = "", textureName = "";
-                    if (mdl.texturePaths != null && mdl.texturePaths.Length > 0 && mdl.texturePaths[0] != null)
-                        texturePath = mdl.texturePaths[0].Replace("\\", "/").ToLower();
-                    if (mdl.textures[i] != null)
-                        textureName = mdl.textures[i].name.Replace("\\", "/").ToLower();
-                    if (textureName.IndexOf(texturePath) > -1)
-                        texturePath = "";
-                    modelTextures[i] = SourceTexture.GrabTexture(vpkParser, texturePath + textureName);
-                }
-                #endregion
+                model = new SourceModel(fixedModelName, fixedModelLocation);
+                model.Parse(vpkParser);
             }
-            catch(System.Exception e)
-            {
-                Debug.LogError("SourceModel: " + e);
-            }
+
+            return model;
         }
-    }
-    private void ReadFaceMeshes(MDLParser mdl, VVDParser vvd, VTXParser vtx, VPKParser vpkParser)
-    {
-        int textureIndex = 0;
-        if (mdl.bodyParts.Length == vtx.bodyParts.Length)
+        private void Parse(VPKParser vpkParser)
         {
-            for (int i = 0; i < mdl.bodyParts.Length; i++)
+            if (vpkParser != null)
             {
-                for (int j = 0; j < mdl.bodyParts[i].models.Length; j++)
+                string modelsVPKDir = ((modelLocation.IndexOf("/") == 0) ? "/models" : "/models/");
+                string mdlPath = modelsVPKDir + modelLocation + modelName + ".mdl";
+                string vvdPath = modelsVPKDir + modelLocation + modelName + ".vvd";
+                string vtxPath = modelsVPKDir + modelLocation + modelName + ".vtx";
+
+                if (vpkParser.FileExists(mdlPath))
                 {
-                    int currentPosition = 0;
-                    for (int k = 0; k < mdl.bodyParts[i].models[j].theMeshes.Length; k++)
+                    if (vpkParser.FileExists(vvdPath))
                     {
-                        FaceMesh currentFace = new FaceMesh();
+                        if (!vpkParser.FileExists(vtxPath))
+                            vtxPath = modelsVPKDir + modelLocation + modelName + ".dx90.vtx";
 
-                        Vector3[] vertices = new Vector3[mdl.bodyParts[i].models[j].theMeshes[k].vertexData.lodVertexCount[mdl.header1.rootLod]];
-                        Vector3[] normals = new Vector3[mdl.bodyParts[i].models[j].theMeshes[k].vertexData.lodVertexCount[mdl.header1.rootLod]];
-                        Vector2[] uv = new Vector2[mdl.bodyParts[i].models[j].theMeshes[k].vertexData.lodVertexCount[mdl.header1.rootLod]];
-                        for (int l = 0; l < vertices.Length; l++)
+                        if (vpkParser.FileExists(vtxPath))
                         {
-                            if (currentPosition < vvd.vertices[mdl.header1.rootLod].Length)
-                                vertices[l] = vvd.vertices[mdl.header1.rootLod][currentPosition].m_vecPosition;
-                            if (currentPosition < vvd.vertices[mdl.header1.rootLod].Length)
-                                normals[l] = vvd.vertices[mdl.header1.rootLod][currentPosition].m_vecNormal;
-                            if (currentPosition < vvd.vertices[mdl.header1.rootLod].Length)
-                                uv[l] = vvd.vertices[mdl.header1.rootLod][currentPosition].m_vecTexCoord;
-                            currentPosition++;
-                        }
+                            using (MDLParser mdl = new MDLParser())
+                            using (VVDParser vvd = new VVDParser())
+                            using (VTXParser vtx = new VTXParser())
+                            {
+                                try
+                                {
+                                    vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
+                                    vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, origOffset); });
+                                    vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
+                                }
+                                catch (System.Exception) { }
 
-                        int[] triangles = new int[vtx.bodyParts[i].theVtxModels[j].theVtxModelLods[0].theVtxMeshes[k].theVtxStripGroups[0].theVtxIndices.Length];
-                        for (int l = 0; l < vtx.bodyParts[i].theVtxModels[j].theVtxModelLods[0].theVtxMeshes[k].theVtxStripGroups[0].theVtxIndices.Length; l++)
+                                if (mdl.bodyParts == null)
+                                {
+                                    Debug.LogError("SourceModel: Could not find body parts of " + modelKey);
+                                    return;
+                                }
+
+                                GetTextures(mdl, vpkParser);
+                                ReadFaceMeshes(mdl, vvd, vtx, vpkParser);
+                            }
+                        }
+                        else
+                            Debug.LogError("SourceModel: Could not find vtx file in vpk (" + vtxPath + ")");
+                    }
+                    else
+                        Debug.LogError("SourceModel: Could not find vvd file in vpk (" + vvdPath + ")");
+                }
+                else
+                    Debug.LogError("SourceModel: Could not find mdl file in vpk (" + mdlPath + ")");
+            }
+            else
+                Debug.Log("SourceModel: VPK parser is null");
+        }
+        private void GetTextures(MDLParser mdl, VPKParser vpkParser)
+        {
+            if (mdl != null && vpkParser != null)
+            {
+                try
+                {
+                    #region Grabbing Textures
+                    modelTextures = new SourceTexture[mdl.textures.Length];
+                    for (int i = 0; i < modelTextures.Length; i++)
+                    {
+                        string texturePath = "", textureName = "";
+                        if (mdl.texturePaths != null && mdl.texturePaths.Length > 0 && mdl.texturePaths[0] != null)
+                            texturePath = mdl.texturePaths[0].Replace("\\", "/").ToLower();
+                        if (mdl.textures[i] != null)
+                            textureName = mdl.textures[i].name.Replace("\\", "/").ToLower();
+                        if (textureName.IndexOf(texturePath) > -1)
+                            texturePath = "";
+                        modelTextures[i] = SourceTexture.GrabTexture(vpkParser, texturePath + textureName);
+                    }
+                    #endregion
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError("SourceModel: " + e);
+                }
+            }
+        }
+        private void ReadFaceMeshes(MDLParser mdl, VVDParser vvd, VTXParser vtx, VPKParser vpkParser)
+        {
+            int textureIndex = 0;
+            if (mdl.bodyParts.Length == vtx.bodyParts.Length)
+            {
+                for (int i = 0; i < mdl.bodyParts.Length; i++)
+                {
+                    for (int j = 0; j < mdl.bodyParts[i].models.Length; j++)
+                    {
+                        int currentPosition = 0;
+                        for (int k = 0; k < mdl.bodyParts[i].models[j].theMeshes.Length; k++)
                         {
-                            triangles[l + 0] = vtx.bodyParts[i].theVtxModels[j].theVtxModelLods[0].theVtxMeshes[k].theVtxStripGroups[0].theVtxVertices[vtx.bodyParts[i].theVtxModels[j].theVtxModelLods[0].theVtxMeshes[k].theVtxStripGroups[0].theVtxIndices[l + 0]].originalMeshVertexIndex;
+                            FaceMesh currentFace = new FaceMesh();
+
+                            Vector3[] vertices = new Vector3[mdl.bodyParts[i].models[j].theMeshes[k].vertexData.lodVertexCount[mdl.header1.rootLod]];
+                            Vector3[] normals = new Vector3[mdl.bodyParts[i].models[j].theMeshes[k].vertexData.lodVertexCount[mdl.header1.rootLod]];
+                            Vector2[] uv = new Vector2[mdl.bodyParts[i].models[j].theMeshes[k].vertexData.lodVertexCount[mdl.header1.rootLod]];
+                            for (int l = 0; l < vertices.Length; l++)
+                            {
+                                if (currentPosition < vvd.vertices[mdl.header1.rootLod].Length)
+                                    vertices[l] = vvd.vertices[mdl.header1.rootLod][currentPosition].m_vecPosition;
+                                if (currentPosition < vvd.vertices[mdl.header1.rootLod].Length)
+                                    normals[l] = vvd.vertices[mdl.header1.rootLod][currentPosition].m_vecNormal;
+                                if (currentPosition < vvd.vertices[mdl.header1.rootLod].Length)
+                                    uv[l] = vvd.vertices[mdl.header1.rootLod][currentPosition].m_vecTexCoord;
+                                currentPosition++;
+                            }
+
+                            int[] triangles = new int[vtx.bodyParts[i].theVtxModels[j].theVtxModelLods[0].theVtxMeshes[k].theVtxStripGroups[0].theVtxIndices.Length];
+                            for (int l = 0; l < vtx.bodyParts[i].theVtxModels[j].theVtxModelLods[0].theVtxMeshes[k].theVtxStripGroups[0].theVtxIndices.Length; l++)
+                            {
+                                triangles[l + 0] = vtx.bodyParts[i].theVtxModels[j].theVtxModelLods[0].theVtxMeshes[k].theVtxStripGroups[0].theVtxVertices[vtx.bodyParts[i].theVtxModels[j].theVtxModelLods[0].theVtxMeshes[k].theVtxStripGroups[0].theVtxIndices[l + 0]].originalMeshVertexIndex;
+                            }
+
+                            MeshData meshData = new MeshData();
+                            meshData.vertices = vertices;
+                            meshData.triangles = triangles;
+                            meshData.normals = normals;
+                            meshData.uv = uv;
+
+                            currentFace.meshData = meshData;
+                            string textureLocation = "";
+                            if (modelTextures != null && textureIndex < modelTextures.Length)
+                                textureLocation = modelTextures[textureIndex]?.location;
+                            textureIndex++;
+
+                            currentFace.faceName = textureLocation;
+                            if (!excludeTextures)
+                                currentFace.texture = SourceTexture.GrabTexture(vpkParser, textureLocation);
+                            faces.Add(currentFace);
                         }
-
-                        MeshData meshData = new MeshData();
-                        meshData.vertices = vertices;
-                        meshData.triangles = triangles;
-                        meshData.normals = normals;
-                        meshData.uv = uv;
-
-                        currentFace.meshData = meshData;
-                        string textureLocation = "";
-                        if (modelTextures != null && textureIndex < modelTextures.Length)
-                            textureLocation = modelTextures[textureIndex]?.location;
-                        textureIndex++;
-
-                        currentFace.faceName = textureLocation;
-                        if (!excludeTextures)
-                            currentFace.texture = SourceTexture.GrabTexture(vpkParser, textureLocation);
-                        faces.Add(currentFace);
                     }
                 }
             }
+            else
+                Debug.Log("SourceModel: MDL and VTX body part count doesn't match (" + modelLocation + ")");
         }
-        else
-            Debug.Log("SourceModel: MDL and VTX body part count doesn't match (" + modelLocation + ")");
-    }
 
-    private void BuildPrefab()
-    {
-        modelPrefab = new GameObject(modelName);
-        modelPrefab.transform.parent = staticPropLibrary.transform;
-        modelPrefab.SetActive(false);
+        private void BuildPrefab()
+        {
+            modelPrefab = new GameObject(modelName);
+            modelPrefab.transform.parent = staticPropLibrary.transform;
+            modelPrefab.SetActive(false);
 
-        Material materialPrefab = modelMaterial;
-        bool destroyMatAfterBuild = modelMaterial == null;
-        if (destroyMatAfterBuild)
-            materialPrefab = new Material(Shader.Find("Legacy Shaders/Diffuse"));
-        if (faces != null)
-            foreach (FaceMesh faceMesh in faces)
-            {
-                GameObject meshRepresentation = new GameObject("ModelPart");
-                meshRepresentation.transform.parent = modelPrefab.transform;
+            Material materialPrefab = modelMaterial;
+            bool destroyMatAfterBuild = modelMaterial == null;
+            if (destroyMatAfterBuild)
+                materialPrefab = new Material(Shader.Find("Legacy Shaders/Diffuse"));
+            if (faces != null)
+                foreach (FaceMesh faceMesh in faces)
+                {
+                    GameObject meshRepresentation = new GameObject("ModelPart");
+                    meshRepresentation.transform.parent = modelPrefab.transform;
 
-                Mesh mesh = faceMesh.meshData.GetMesh();
+                    Mesh mesh = faceMesh.meshData.GetMesh();
 
-                MeshFilter mesher = meshRepresentation.AddComponent<MeshFilter>();
-                mesher.sharedMesh = mesh;
+                    MeshFilter mesher = meshRepresentation.AddComponent<MeshFilter>();
+                    mesher.sharedMesh = mesh;
 
-                Material meshMaterial = new Material(materialPrefab);
-                materialsCreated.Add(meshMaterial);
-                meshMaterial.mainTexture = faceMesh.texture?.GetTexture();
-                meshRepresentation.AddComponent<MeshRenderer>().material = meshMaterial;
-                meshRepresentation.AddComponent<MeshCollider>();
-            }
-        if (destroyMatAfterBuild)
-            Object.Destroy(materialPrefab);
-    }
-    public GameObject InstantiateGameObject()
-    {
-        if (!staticPropLibrary)
-            staticPropLibrary = new GameObject("StaticPropPrefabs");
-        if (!modelPrefab)
-            BuildPrefab();
+                    Material meshMaterial = new Material(materialPrefab);
+                    materialsCreated.Add(meshMaterial);
+                    meshMaterial.mainTexture = faceMesh.texture?.GetTexture();
+                    meshRepresentation.AddComponent<MeshRenderer>().material = meshMaterial;
+                    meshRepresentation.AddComponent<MeshCollider>();
+                }
+            if (destroyMatAfterBuild)
+                Object.Destroy(materialPrefab);
+        }
+        public GameObject InstantiateGameObject()
+        {
+            if (!staticPropLibrary)
+                staticPropLibrary = new GameObject("StaticPropPrefabs");
+            if (!modelPrefab)
+                BuildPrefab();
 
-        GameObject cloned = Object.Instantiate(modelPrefab);
-        cloned.SetActive(true);
-        return cloned;
+            GameObject cloned = Object.Instantiate(modelPrefab);
+            cloned.SetActive(true);
+            return cloned;
+        }
     }
 }

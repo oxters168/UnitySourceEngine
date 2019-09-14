@@ -1,5 +1,8 @@
-﻿public class mstudioanimsections_t
+﻿namespace UnitySourceEngine
 {
-    public int animBlock;
-    public int animOffset;
+    public class mstudioanimsections_t
+    {
+        public int animBlock;
+        public int animOffset;
+    }
 }

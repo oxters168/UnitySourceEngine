@@ -1,5 +1,8 @@
-﻿public struct StaticPropDictLump_t
+﻿namespace UnitySourceEngine
 {
-    public int dictEntries;
-    public string[] names;	//model name (size of [dictEntries])
+    public struct StaticPropDictLump_t
+    {
+        public int dictEntries;
+        public string[] names;  //model name (size of [dictEntries])
+    }
 }

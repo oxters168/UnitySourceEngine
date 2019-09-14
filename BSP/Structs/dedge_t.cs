@@ -1,9 +1,12 @@
-﻿public struct dedge_t
+﻿namespace UnitySourceEngine
 {
-    public ushort[] v;	// vertex indices
-
-    public void Dispose()
+    public struct dedge_t
     {
-        v = null;
+        public ushort[] v;  // vertex indices
+
+        public void Dispose()
+        {
+            v = null;
+        }
     }
 }

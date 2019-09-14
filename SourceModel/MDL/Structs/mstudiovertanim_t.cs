@@ -1,7 +1,10 @@
-﻿public class mstudiovertanim_t
+﻿namespace UnitySourceEngine
 {
-    public ushort index;
-    public byte speed;
-    public byte side;
+    public class mstudiovertanim_t
+    {
+        public ushort index;
+        public byte speed;
+        public byte side;
 
+    }
 }

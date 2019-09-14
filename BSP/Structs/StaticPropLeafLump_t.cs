@@ -1,5 +1,8 @@
-﻿public struct StaticPropLeafLump_t
+﻿namespace UnitySourceEngine
 {
-    public int leafEntries;
-    public ushort[] leaf; //(size of [leafEntries])
+    public struct StaticPropLeafLump_t
+    {
+        public int leafEntries;
+        public ushort[] leaf; //(size of [leafEntries])
+    }
 }

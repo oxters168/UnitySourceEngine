@@ -1,15 +1,18 @@
-﻿public class SourceVtxBodyPart
+﻿namespace UnitySourceEngine
 {
-    public int modelCount;
-    public int modelOffset;
-
-    public SourceVtxModel[] theVtxModels;
-
-    public void Dispose()
+    public class SourceVtxBodyPart
     {
-        if (theVtxModels != null)
-            foreach (SourceVtxModel model in theVtxModels)
-                model?.Dispose();
-        theVtxModels = null;
+        public int modelCount;
+        public int modelOffset;
+
+        public SourceVtxModel[] theVtxModels;
+
+        public void Dispose()
+        {
+            if (theVtxModels != null)
+                foreach (SourceVtxModel model in theVtxModels)
+                    model?.Dispose();
+            theVtxModels = null;
+        }
     }
 }

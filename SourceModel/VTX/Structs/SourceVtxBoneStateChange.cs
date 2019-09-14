@@ -1,5 +1,8 @@
-﻿public class SourceVtxBoneStateChange
+﻿namespace UnitySourceEngine
 {
-    public int hardwareId;
-    public int newBoneId;
+    public class SourceVtxBoneStateChange
+    {
+        public int hardwareId;
+        public int newBoneId;
+    }
 }

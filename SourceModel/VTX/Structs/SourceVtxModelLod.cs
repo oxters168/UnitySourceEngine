@@ -1,16 +1,19 @@
-﻿public class SourceVtxModelLod
+﻿namespace UnitySourceEngine
 {
-    public int meshCount;
-    public int meshOffset;
-	public float switchPoint;
-
-    public SourceVtxMesh[] theVtxMeshes;
-
-    public void Dispose()
+    public class SourceVtxModelLod
     {
-        if (theVtxMeshes != null)
-            foreach (SourceVtxMesh mesh in theVtxMeshes)
-                mesh?.Dispose();
-        theVtxMeshes = null;
+        public int meshCount;
+        public int meshOffset;
+        public float switchPoint;
+
+        public SourceVtxMesh[] theVtxMeshes;
+
+        public void Dispose()
+        {
+            if (theVtxMeshes != null)
+                foreach (SourceVtxMesh mesh in theVtxMeshes)
+                    mesh?.Dispose();
+            theVtxMeshes = null;
+        }
     }
 }

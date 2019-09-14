@@ -1,6 +1,9 @@
-﻿public class mstudioanimvalue_t
+﻿namespace UnitySourceEngine
 {
-    public byte valid; //[FieldOffset(0)]
-    public byte total; //[FieldOffset(1)]
-    public short value; //[FieldOffset(0)]
+    public class mstudioanimvalue_t
+    {
+        public byte valid; //[FieldOffset(0)]
+        public byte total; //[FieldOffset(1)]
+        public short value; //[FieldOffset(0)]
+    }
 }

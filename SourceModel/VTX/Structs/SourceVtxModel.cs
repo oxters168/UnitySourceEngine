@@ -1,15 +1,18 @@
-﻿public class SourceVtxModel
+﻿namespace UnitySourceEngine
 {
-    public int lodCount;
-    public int lodOffset;
-
-    public SourceVtxModelLod[] theVtxModelLods;
-
-    public void Dispose()
+    public class SourceVtxModel
     {
-        if (theVtxModelLods != null)
-            foreach (SourceVtxModelLod modelLod in theVtxModelLods)
-                modelLod?.Dispose();
-        theVtxModelLods = null;
+        public int lodCount;
+        public int lodOffset;
+
+        public SourceVtxModelLod[] theVtxModelLods;
+
+        public void Dispose()
+        {
+            if (theVtxModelLods != null)
+                foreach (SourceVtxModelLod modelLod in theVtxModelLods)
+                    modelLod?.Dispose();
+            theVtxModelLods = null;
+        }
     }
 }

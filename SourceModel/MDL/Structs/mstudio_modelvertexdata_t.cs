@@ -1,5 +1,8 @@
-﻿public class mstudio_modelvertexdata_t
+﻿namespace UnitySourceEngine
 {
-    public int vertexDataP;
-    public int tangentDataP;
+    public class mstudio_modelvertexdata_t
+    {
+        public int vertexDataP;
+        public int tangentDataP;
+    }
 }
