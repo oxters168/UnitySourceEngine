@@ -142,26 +142,40 @@ namespace UnitySourceEngine
             {
                 identifier = DataParser.ReadInt(stream);
                 version = DataParser.ReadInt(stream);
-                LoadLumps(stream, cancelSource);
-                LoadGameLumps(stream, cancelSource);
+                if (cancelSource != null && !cancelSource.IsCancellationRequested)
+                    LoadLumps(stream, cancelSource);
+                if (cancelSource != null && !cancelSource.IsCancellationRequested)
+                    LoadGameLumps(stream, cancelSource);
                 mapRevision = DataParser.ReadInt(stream);
 
-                vertices = GetVertices(stream, cancelSource);
+                if (cancelSource != null && !cancelSource.IsCancellationRequested)
+                    vertices = GetVertices(stream, cancelSource);
 
-                edges = GetEdges(stream, cancelSource);
-                faces = GetFaces(stream, cancelSource);
-                surfedges = GetSurfedges(stream, cancelSource);
-                planes = GetPlanes(stream, cancelSource);
+                if (cancelSource != null && !cancelSource.IsCancellationRequested)
+                    edges = GetEdges(stream, cancelSource);
+                if (cancelSource != null && !cancelSource.IsCancellationRequested)
+                    faces = GetFaces(stream, cancelSource);
+                if (cancelSource != null && !cancelSource.IsCancellationRequested)
+                    surfedges = GetSurfedges(stream, cancelSource);
+                if (cancelSource != null && !cancelSource.IsCancellationRequested)
+                    planes = GetPlanes(stream, cancelSource);
 
-                dispInfo = GetDispInfo(stream, cancelSource);
-                dispVerts = GetDispVerts(stream, cancelSource);
+                if (cancelSource != null && !cancelSource.IsCancellationRequested)
+                    dispInfo = GetDispInfo(stream, cancelSource);
+                if (cancelSource != null && !cancelSource.IsCancellationRequested)
+                    dispVerts = GetDispVerts(stream, cancelSource);
 
-                texInfo = GetTextureInfo(stream, cancelSource);
-                texData = GetTextureData(stream, cancelSource);
-                texStringTable = GetTextureStringTable(stream, cancelSource);
-                textureStringData = GetTextureStringData(stream, cancelSource);
+                if (cancelSource != null && !cancelSource.IsCancellationRequested)
+                    texInfo = GetTextureInfo(stream, cancelSource);
+                if (cancelSource != null && !cancelSource.IsCancellationRequested)
+                    texData = GetTextureData(stream, cancelSource);
+                if (cancelSource != null && !cancelSource.IsCancellationRequested)
+                    texStringTable = GetTextureStringTable(stream, cancelSource);
+                if (cancelSource != null && !cancelSource.IsCancellationRequested)
+                    textureStringData = GetTextureStringData(stream, cancelSource);
 
-                staticProps = GetStaticProps(stream, cancelSource);
+                if (cancelSource != null && !cancelSource.IsCancellationRequested)
+                    staticProps = GetStaticProps(stream, cancelSource);
             }
         }
 

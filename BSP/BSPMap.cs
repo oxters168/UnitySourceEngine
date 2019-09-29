@@ -101,6 +101,9 @@ namespace UnitySourceEngine
 
                 bspParser.ParseData(cancelSource);
 
+                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                    return null;
+
                 foreach (dface_t face in bspParser.faces)
                 {
                     if (cancelSource != null && cancelSource.IsCancellationRequested)
