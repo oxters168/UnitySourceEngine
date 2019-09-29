@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System;
 using UnityHelpers;
+using System.Threading;
 
 namespace UnitySourceEngine
 {
@@ -88,7 +89,7 @@ namespace UnitySourceEngine
             gameObject = null;
         }
 
-        public List<string> GetDependencies()
+        public List<string> GetDependencies(CancellationTokenSource cancelSource = null)
         {
             List<string> dependencies = new List<string>();
             using (VPKParser vpkParser = new VPKParser(vpkLoc))
@@ -98,10 +99,13 @@ namespace UnitySourceEngine
                 if (!validVPK)
                     return null;
 
-                bspParser.ParseData();
+                bspParser.ParseData(cancelSource);
 
                 foreach (dface_t face in bspParser.faces)
                 {
+                    if (cancelSource != null && cancelSource.IsCancellationRequested)
+                        return null;
+
                     texflags currentTexFlags = GetFaceTextureFlags(face, bspParser);
                     string textureLocation = GetFaceTextureLocation(face, bspParser);
 
@@ -123,7 +127,7 @@ namespace UnitySourceEngine
             }
             return dependencies;
         }
-        public void ParseFile(Action<float, string> onProgressChanged = null, Action onFinished = null)
+        public void ParseFile(Action<float, string> onProgressChanged = null, Action onFinished = null, CancellationTokenSource cancelSource = null)
         {
             isParsed = false;
             isParsing = true;
@@ -133,7 +137,7 @@ namespace UnitySourceEngine
             using (VPKParser vpkParser = new VPKParser(vpkLoc))
             using (BSPParser bspParser = new BSPParser(Path.Combine(mapDir, mapName + ".bsp")))
             {
-                bspParser.ParseData();
+                bspParser.ParseData(cancelSource);
 
                 int facesCount = excludeMapFaces ? 0 : bspParser.faces.Length;
                 int propsCount = excludeModels ? 0 : bspParser.staticProps.staticPropInfo.Length;
@@ -143,11 +147,11 @@ namespace UnitySourceEngine
 
                 onProgressChanged?.Invoke(currentProgress, currentMessage = "Parsing Faces");
                 if (!excludeMapFaces)
-                    ReadFaces(bspParser, validVPK ? vpkParser : null, onProgressChanged);
+                    ReadFaces(bspParser, validVPK ? vpkParser : null, onProgressChanged, cancelSource);
 
                 onProgressChanged?.Invoke(currentProgress, currentMessage = "Loading Static Props");
                 if (validVPK && !excludeModels)
-                    ReadStaticProps(bspParser, vpkParser, onProgressChanged);
+                    ReadStaticProps(bspParser, vpkParser, onProgressChanged, cancelSource);
             }
 
             onFinished?.Invoke();
@@ -180,10 +184,13 @@ namespace UnitySourceEngine
                 }
             return undesired || (tf & texflags.SURF_SKY2D) == texflags.SURF_SKY2D || (tf & texflags.SURF_SKY) == texflags.SURF_SKY || (tf & texflags.SURF_NODRAW) == texflags.SURF_NODRAW || (tf & texflags.SURF_SKIP) == texflags.SURF_SKIP;
         }
-        private void ReadFaces(BSPParser bspParser, VPKParser vpkParser = null, Action<float, string> onProgressChanged = null)
+        private void ReadFaces(BSPParser bspParser, VPKParser vpkParser = null, Action<float, string> onProgressChanged = null, CancellationTokenSource cancelSource = null)
         {
             foreach (dface_t face in bspParser.faces)
             {
+                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                    return;
+
                 texflags currentTexFlags = GetFaceTextureFlags(face, bspParser);
                 string textureLocation = GetFaceTextureLocation(face, bspParser);
 
@@ -443,11 +450,14 @@ namespace UnitySourceEngine
                 allFaces.Add(faceMesh);
         }
 
-        private void ReadStaticProps(BSPParser bspParser, VPKParser vpkParser, Action<float, string> onProgressChanged = null)
+        private void ReadStaticProps(BSPParser bspParser, VPKParser vpkParser, Action<float, string> onProgressChanged = null, CancellationTokenSource cancelSource = null)
         {
             staticProps = new SourceModel[bspParser.staticProps.staticPropInfo.Length];
             for (int i = 0; i < bspParser.staticProps.staticPropInfo.Length; i++)
             {
+                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                    return;
+
                 //Debug.Log("Prop: Fixing Location");
                 if (i >= bspParser.staticProps.staticPropInfo.Length)
                 {
