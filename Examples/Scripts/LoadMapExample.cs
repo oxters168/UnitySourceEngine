@@ -55,7 +55,7 @@ public class LoadMapExample : MonoBehaviour
         SourceTexture.averageTextures = flatTextures;
         SourceTexture.maxTextureSize = maxTextureSize;
 
-        loadingTask = UnityHelpers.TaskManagerController.RunActionAsync("Parsing Map", (cts) => { map.ParseFile(cts.Token, null, () =>
+        loadingTask = UnityHelpers.TaskManagerController.RunActionAsync("Parsing Map", (cancelToken) => { map.ParseFile(cancelToken, null, () =>
         {
             if (!loadingTask.cancelled)
                 UnityHelpers.TaskManagerController.RunAction(() => { map.MakeGameObject(null, (go) => { go.SetActive(true); }); });
