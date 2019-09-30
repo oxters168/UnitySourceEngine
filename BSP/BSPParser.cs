@@ -94,11 +94,11 @@ namespace UnitySourceEngine
             }
         }
 
-        private void LoadLumps(Stream stream, CancellationTokenSource cancelSource = null)
+        private void LoadLumps(Stream stream, CancellationToken cancelToken)
         {
             for (int i = 0; i < lumps.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return;
 
                 lump_t lump = new lump_t();
@@ -109,7 +109,7 @@ namespace UnitySourceEngine
                 lumps[i] = lump;
             }
         }
-        private void LoadGameLumps(Stream stream, CancellationTokenSource cancelSource = null)
+        private void LoadGameLumps(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[35];
             stream.Position = lump.fileofs;
@@ -121,7 +121,7 @@ namespace UnitySourceEngine
 
             for (int i = 0; i < gameLumpHeader.gamelump.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return;
 
                 gameLumpHeader.gamelump[i] = new dgamelump_t();
@@ -136,46 +136,46 @@ namespace UnitySourceEngine
             lumpData[35] = gameLumpHeader.gamelump;
         }
 
-        public void ParseData(CancellationTokenSource cancelSource = null)
+        public void ParseData(CancellationToken cancelToken)
         {
             using (FileStream stream = new FileStream(fileLocation, FileMode.Open, FileAccess.Read))
             {
                 identifier = DataParser.ReadInt(stream);
                 version = DataParser.ReadInt(stream);
-                if (cancelSource != null && !cancelSource.IsCancellationRequested)
-                    LoadLumps(stream, cancelSource);
-                if (cancelSource != null && !cancelSource.IsCancellationRequested)
-                    LoadGameLumps(stream, cancelSource);
+                if (!cancelToken.IsCancellationRequested)
+                    LoadLumps(stream, cancelToken);
+                if (!cancelToken.IsCancellationRequested)
+                    LoadGameLumps(stream, cancelToken);
                 mapRevision = DataParser.ReadInt(stream);
 
-                if (cancelSource != null && !cancelSource.IsCancellationRequested)
-                    vertices = GetVertices(stream, cancelSource);
+                if (!cancelToken.IsCancellationRequested)
+                    vertices = GetVertices(stream, cancelToken);
 
-                if (cancelSource != null && !cancelSource.IsCancellationRequested)
-                    edges = GetEdges(stream, cancelSource);
-                if (cancelSource != null && !cancelSource.IsCancellationRequested)
-                    faces = GetFaces(stream, cancelSource);
-                if (cancelSource != null && !cancelSource.IsCancellationRequested)
-                    surfedges = GetSurfedges(stream, cancelSource);
-                if (cancelSource != null && !cancelSource.IsCancellationRequested)
-                    planes = GetPlanes(stream, cancelSource);
+                if (!cancelToken.IsCancellationRequested)
+                    edges = GetEdges(stream, cancelToken);
+                if (!cancelToken.IsCancellationRequested)
+                    faces = GetFaces(stream, cancelToken);
+                if (!cancelToken.IsCancellationRequested)
+                    surfedges = GetSurfedges(stream, cancelToken);
+                if (!cancelToken.IsCancellationRequested)
+                    planes = GetPlanes(stream, cancelToken);
 
-                if (cancelSource != null && !cancelSource.IsCancellationRequested)
-                    dispInfo = GetDispInfo(stream, cancelSource);
-                if (cancelSource != null && !cancelSource.IsCancellationRequested)
-                    dispVerts = GetDispVerts(stream, cancelSource);
+                if (!cancelToken.IsCancellationRequested)
+                    dispInfo = GetDispInfo(stream, cancelToken);
+                if (!cancelToken.IsCancellationRequested)
+                    dispVerts = GetDispVerts(stream, cancelToken);
 
-                if (cancelSource != null && !cancelSource.IsCancellationRequested)
-                    texInfo = GetTextureInfo(stream, cancelSource);
-                if (cancelSource != null && !cancelSource.IsCancellationRequested)
-                    texData = GetTextureData(stream, cancelSource);
-                if (cancelSource != null && !cancelSource.IsCancellationRequested)
-                    texStringTable = GetTextureStringTable(stream, cancelSource);
-                if (cancelSource != null && !cancelSource.IsCancellationRequested)
-                    textureStringData = GetTextureStringData(stream, cancelSource);
+                if (!cancelToken.IsCancellationRequested)
+                    texInfo = GetTextureInfo(stream, cancelToken);
+                if (!cancelToken.IsCancellationRequested)
+                    texData = GetTextureData(stream, cancelToken);
+                if (!cancelToken.IsCancellationRequested)
+                    texStringTable = GetTextureStringTable(stream, cancelToken);
+                if (!cancelToken.IsCancellationRequested)
+                    textureStringData = GetTextureStringData(stream, cancelToken);
 
-                if (cancelSource != null && !cancelSource.IsCancellationRequested)
-                    staticProps = GetStaticProps(stream, cancelSource);
+                if (!cancelToken.IsCancellationRequested)
+                    staticProps = GetStaticProps(stream, cancelToken);
             }
         }
 
@@ -238,7 +238,7 @@ namespace UnitySourceEngine
             return brushSides;
         }
 
-        private ddispinfo_t[] GetDispInfo(Stream stream, CancellationTokenSource cancelSource = null)
+        private ddispinfo_t[] GetDispInfo(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[26];
             ddispinfo_t[] displacementInfo = new ddispinfo_t[lump.filelen / 86];
@@ -246,7 +246,7 @@ namespace UnitySourceEngine
 
             for (int i = 0; i < displacementInfo.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 displacementInfo[i].startPosition = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
@@ -267,7 +267,7 @@ namespace UnitySourceEngine
             return displacementInfo;
         }
 
-        private dDispVert[] GetDispVerts(Stream stream, CancellationTokenSource cancelSource = null)
+        private dDispVert[] GetDispVerts(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[33];
             dDispVert[] displacementVertices = new dDispVert[lump.filelen / 20];
@@ -275,7 +275,7 @@ namespace UnitySourceEngine
 
             for (int i = 0; i < displacementVertices.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 displacementVertices[i].vec = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
@@ -287,7 +287,7 @@ namespace UnitySourceEngine
             return displacementVertices;
         }
 
-        private dedge_t[] GetEdges(Stream stream, CancellationTokenSource cancelSource = null)
+        private dedge_t[] GetEdges(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[12];
             dedge_t[] edges = new dedge_t[lump.filelen / 4];
@@ -295,7 +295,7 @@ namespace UnitySourceEngine
 
             for (int i = 0; i < edges.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 edges[i].v = new ushort[2];
@@ -307,7 +307,7 @@ namespace UnitySourceEngine
             return edges;
         }
 
-        private Vector3[] GetVertices(Stream stream, CancellationTokenSource cancelSource = null)
+        private Vector3[] GetVertices(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[3];
             Vector3[] vertices = new Vector3[lump.filelen / 12];
@@ -315,7 +315,7 @@ namespace UnitySourceEngine
 
             for (int i = 0; i < vertices.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 vertices[i] = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
@@ -359,7 +359,7 @@ namespace UnitySourceEngine
             return faces;
         }
 
-        private dface_t[] GetFaces(Stream stream, CancellationTokenSource cancelSource = null)
+        private dface_t[] GetFaces(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[7];
             dface_t[] faces = new dface_t[lump.filelen / 56];
@@ -367,7 +367,7 @@ namespace UnitySourceEngine
 
             for (int i = 0; i < faces.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 faces[i].planenum = DataParser.ReadUShort(stream);
@@ -393,7 +393,7 @@ namespace UnitySourceEngine
             return faces;
         }
 
-        private dplane_t[] GetPlanes(Stream stream, CancellationTokenSource cancelSource = null)
+        private dplane_t[] GetPlanes(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[1];
             dplane_t[] planes = new dplane_t[lump.filelen / 20];
@@ -401,7 +401,7 @@ namespace UnitySourceEngine
 
             for (int i = 0; i < planes.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 planes[i].normal = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
@@ -413,7 +413,7 @@ namespace UnitySourceEngine
             return planes;
         }
 
-        private int[] GetSurfedges(Stream stream, CancellationTokenSource cancelSource = null)
+        private int[] GetSurfedges(Stream stream, CancellationToken cancelToken)
         {
 
             lump_t lump = lumps[13];
@@ -422,7 +422,7 @@ namespace UnitySourceEngine
 
             for (int i = 0; i < lump.filelen / 4; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 surfedges[i] = DataParser.ReadInt(stream);
@@ -432,7 +432,7 @@ namespace UnitySourceEngine
             return surfedges;
         }
 
-        private texinfo_t[] GetTextureInfo(Stream stream, CancellationTokenSource cancelSource = null)
+        private texinfo_t[] GetTextureInfo(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[6];
             texinfo_t[] textureInfo = new texinfo_t[lump.filelen / 72];
@@ -440,7 +440,7 @@ namespace UnitySourceEngine
 
             for (int i = 0; i < textureInfo.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 textureInfo[i].textureVecs = new float[2][];
@@ -457,7 +457,7 @@ namespace UnitySourceEngine
             return textureInfo;
         }
 
-        private dtexdata_t[] GetTextureData(Stream stream, CancellationTokenSource cancelSource = null)
+        private dtexdata_t[] GetTextureData(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[2];
             dtexdata_t[] textureData = new dtexdata_t[lump.filelen / 32];
@@ -465,7 +465,7 @@ namespace UnitySourceEngine
 
             for (int i = 0; i < textureData.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 Vector3 reflectivity = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
@@ -481,7 +481,7 @@ namespace UnitySourceEngine
             return textureData;
         }
 
-        private int[] GetTextureStringTable(Stream stream, CancellationTokenSource cancelSource = null)
+        private int[] GetTextureStringTable(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[44];
             int[] textureStringTable = new int[lump.filelen / 4];
@@ -489,7 +489,7 @@ namespace UnitySourceEngine
 
             for (int i = 0; i < textureStringTable.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 textureStringTable[i] = DataParser.ReadInt(stream);
@@ -498,7 +498,7 @@ namespace UnitySourceEngine
             return textureStringTable;
         }
 
-        private List<string> GetTextureStringData(Stream stream, CancellationTokenSource cancelSource = null)
+        private List<string> GetTextureStringData(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[43];
             stream.Position = lump.fileofs;
@@ -506,7 +506,7 @@ namespace UnitySourceEngine
             List<string> textureStringData = new List<string>();
             while (stream.Position < lump.fileofs + lump.filelen)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 textureStringData.Add(DataParser.ReadNullTerminatedString(stream));
@@ -514,14 +514,14 @@ namespace UnitySourceEngine
             return textureStringData;
         }
 
-        private StaticProps_t GetStaticProps(Stream stream, CancellationTokenSource cancelSource = null)
+        private StaticProps_t GetStaticProps(Stream stream, CancellationToken cancelToken)
         {
             dgamelump_t lump = null;
 
             //Debug.Log("# Game Lumps: " + gameLumpHeader.gamelump.Length);
             for (int i = 0; i < gameLumpHeader.gamelump.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 //Debug.Log("Static Prop Dict Index: " + i + " id: " + gameLumpHeader.gamelump[i].id + " fileofs: " + gameLumpHeader.gamelump[i].fileofs + " filelen: " + gameLumpHeader.gamelump[i].filelen + " version: " + gameLumpHeader.gamelump[i].version);
@@ -540,7 +540,7 @@ namespace UnitySourceEngine
 
                 for (int i = 0; i < staticProps.staticPropDict.names.Length; i++)
                 {
-                    if (cancelSource != null && cancelSource.IsCancellationRequested)
+                    if (cancelToken.IsCancellationRequested)
                         return null;
 
                     char[] nullPaddedName = new char[128];
@@ -559,7 +559,7 @@ namespace UnitySourceEngine
 
                 for (int i = 0; i < staticProps.staticPropLeaf.leaf.Length; i++)
                 {
-                    if (cancelSource != null && cancelSource.IsCancellationRequested)
+                    if (cancelToken.IsCancellationRequested)
                         return null;
 
                     staticProps.staticPropLeaf.leaf[i] = DataParser.ReadUShort(stream);
@@ -574,7 +574,7 @@ namespace UnitySourceEngine
                 //int largestIndex = -1;
                 for (int i = 0; i < staticProps.staticPropInfo.Length; i++)
                 {
-                    if (cancelSource != null && cancelSource.IsCancellationRequested)
+                    if (cancelToken.IsCancellationRequested)
                         return null;
 
                     staticProps.staticPropInfo[i].Origin = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));       // origin

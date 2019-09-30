@@ -37,7 +37,6 @@ namespace UnitySourceEngine
         public bool isParsing { get; private set; }
         public bool isBuilt { get; private set; }
         public bool isBuilding { get; private set; }
-        public float currentProgress { get; private set; }
         public string currentMessage { get; private set; }
         public float PercentLoaded { get { return (float)totalItemsLoaded / totalItemsToLoad; } }
 
@@ -67,7 +66,6 @@ namespace UnitySourceEngine
             isParsing = false;
             isBuilt = false;
             isBuilding = false;
-            currentProgress = 0;
             currentMessage = string.Empty;
 
             foreach (Material mat in materialsCreated)
@@ -89,7 +87,7 @@ namespace UnitySourceEngine
             gameObject = null;
         }
 
-        public List<string> GetDependencies(CancellationTokenSource cancelSource = null)
+        public List<string> GetDependencies(CancellationToken cancelToken)
         {
             List<string> dependencies = new List<string>();
             using (VPKParser vpkParser = new VPKParser(vpkLoc))
@@ -99,14 +97,14 @@ namespace UnitySourceEngine
                 if (!validVPK)
                     return null;
 
-                bspParser.ParseData(cancelSource);
+                bspParser.ParseData(cancelToken);
 
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 foreach (dface_t face in bspParser.faces)
                 {
-                    if (cancelSource != null && cancelSource.IsCancellationRequested)
+                    if (cancelToken.IsCancellationRequested)
                         return null;
 
                     texflags currentTexFlags = GetFaceTextureFlags(face, bspParser);
@@ -125,22 +123,24 @@ namespace UnitySourceEngine
                     }
                 }
 
+                //Todo: Add vpk dependency check for static props
                 //if (validVPK && !excludeModels)
                 //    ReadStaticProps(bspParser, vpkParser, onProgressChanged);
             }
             return dependencies;
         }
-        public void ParseFile(Action<float, string> onProgressChanged = null, Action onFinished = null, CancellationTokenSource cancelSource = null)
+        public void ParseFile(CancellationToken cancelToken, Action<float, string> onProgressChanged = null, Action onFinished = null)
         {
             isParsed = false;
             isParsing = true;
 
-            onProgressChanged?.Invoke(currentProgress, currentMessage = "Reading BSP Data");
+            currentMessage = "Reading BSP Data";
+            onProgressChanged?.Invoke(PercentLoaded, currentMessage);
 
             using (VPKParser vpkParser = new VPKParser(vpkLoc))
             using (BSPParser bspParser = new BSPParser(Path.Combine(mapDir, mapName + ".bsp")))
             {
-                bspParser.ParseData(cancelSource);
+                bspParser.ParseData(cancelToken);
 
                 int facesCount = excludeMapFaces ? 0 : bspParser.faces.Length;
                 int propsCount = excludeModels ? 0 : bspParser.staticProps.staticPropInfo.Length;
@@ -148,13 +148,15 @@ namespace UnitySourceEngine
 
                 bool validVPK = vpkParser.IsValid();
 
-                onProgressChanged?.Invoke(currentProgress, currentMessage = "Parsing Faces");
+                currentMessage = "Parsing Faces";
+                onProgressChanged?.Invoke(PercentLoaded, currentMessage);
                 if (!excludeMapFaces)
-                    ReadFaces(bspParser, validVPK ? vpkParser : null, onProgressChanged, cancelSource);
+                    ReadFaces(bspParser, validVPK ? vpkParser : null, cancelToken, onProgressChanged);
 
-                onProgressChanged?.Invoke(currentProgress, currentMessage = "Loading Static Props");
+                currentMessage = "Loading Static Props";
+                onProgressChanged?.Invoke(PercentLoaded, currentMessage);
                 if (validVPK && !excludeModels)
-                    ReadStaticProps(bspParser, vpkParser, onProgressChanged, cancelSource);
+                    ReadStaticProps(bspParser, vpkParser, cancelToken, onProgressChanged);
             }
 
             onFinished?.Invoke();
@@ -187,11 +189,11 @@ namespace UnitySourceEngine
                 }
             return undesired || (tf & texflags.SURF_SKY2D) == texflags.SURF_SKY2D || (tf & texflags.SURF_SKY) == texflags.SURF_SKY || (tf & texflags.SURF_NODRAW) == texflags.SURF_NODRAW || (tf & texflags.SURF_SKIP) == texflags.SURF_SKIP;
         }
-        private void ReadFaces(BSPParser bspParser, VPKParser vpkParser = null, Action<float, string> onProgressChanged = null, CancellationTokenSource cancelSource = null)
+        private void ReadFaces(BSPParser bspParser, VPKParser vpkParser, CancellationToken cancelToken, Action<float, string> onProgressChanged = null)
         {
             foreach (dface_t face in bspParser.faces)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return;
 
                 texflags currentTexFlags = GetFaceTextureFlags(face, bspParser);
@@ -215,7 +217,7 @@ namespace UnitySourceEngine
                 }
 
                 totalItemsLoaded++;
-                onProgressChanged?.Invoke(currentProgress = (float)totalItemsLoaded / totalItemsToLoad, currentMessage);
+                onProgressChanged?.Invoke(PercentLoaded, currentMessage);
             }
         }
         public MeshData MakeFace(BSPParser bspParser, dface_t face)
@@ -453,12 +455,12 @@ namespace UnitySourceEngine
                 allFaces.Add(faceMesh);
         }
 
-        private void ReadStaticProps(BSPParser bspParser, VPKParser vpkParser, Action<float, string> onProgressChanged = null, CancellationTokenSource cancelSource = null)
+        private void ReadStaticProps(BSPParser bspParser, VPKParser vpkParser, CancellationToken cancelToken, Action<float, string> onProgressChanged = null)
         {
             staticProps = new SourceModel[bspParser.staticProps.staticPropInfo.Length];
             for (int i = 0; i < bspParser.staticProps.staticPropInfo.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return;
 
                 //Debug.Log("Prop: Fixing Location");
@@ -486,7 +488,7 @@ namespace UnitySourceEngine
                 staticProps[i].angles = bspParser.staticProps.staticPropInfo[i].Angles;
 
                 totalItemsLoaded++;
-                onProgressChanged?.Invoke(currentProgress = (float)totalItemsLoaded / totalItemsToLoad, currentMessage);
+                onProgressChanged?.Invoke(PercentLoaded, currentMessage);
             }
         }
 
@@ -536,7 +538,7 @@ namespace UnitySourceEngine
                 #endregion
 
                 totalItemsLoaded++;
-                onProgressChanged?.Invoke(currentProgress = (float)totalItemsLoaded / totalItemsToLoad, currentMessage);
+                onProgressChanged?.Invoke(PercentLoaded, currentMessage);
                 //if (totalItemsLoaded % breathingInterval == 0)
                 //    yield return null;
             }
@@ -551,7 +553,7 @@ namespace UnitySourceEngine
                     model.transform.localRotation = Quaternion.Euler(currentStaticProp.angles).FixNaN();
                 }
                 totalItemsLoaded++;
-                onProgressChanged?.Invoke(currentProgress = (float)totalItemsLoaded / totalItemsToLoad, currentMessage);
+                onProgressChanged?.Invoke(PercentLoaded, currentMessage);
                 //if (totalItemsLoaded % breathingInterval == 0)
                 //    yield return null;
             }
