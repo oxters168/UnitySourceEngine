@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnitySourceEngine;
 
-public class LoadModelExample : MonoBehaviour
+public class SourceModelLoader : MonoBehaviour
 {
     public string vpkPath = @"C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\csgo";
     public string modelPath = "models/weapons/v_rif_m4a1.mdl";
@@ -12,13 +12,13 @@ public class LoadModelExample : MonoBehaviour
 
     private SourceModel model;
 
-    private void OnEnable()
+    private void Start()
     {
         model = LoadModel(vpkPath, modelPath, excludeTextures, flatTextures, maxTextureSize);
         if (model != null)
-            model.InstantiateGameObject();
+            model.InstantiateGameObject().transform.SetParent(transform, false);
     }
-    private void OnDisable()
+    private void OnDestroy()
     {
         if (model != null)
             model.Dispose();
