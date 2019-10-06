@@ -183,7 +183,10 @@ namespace UnitySourceEngine
                         {
                             vpkParser.LoadFileAsStream(vtfFilePath, (stream, origOffset, fileLength) => { srcTexture = ReadAndCache(stream, origOffset, vtfFilePath); });
                         }
-                        catch (Exception) { }
+                        catch (Exception e)
+                        {
+                            Debug.LogError("SourceTexture: " + e.ToString());
+                        }
                     }
                     else
                     {
