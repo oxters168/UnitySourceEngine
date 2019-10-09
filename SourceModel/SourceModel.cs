@@ -244,7 +244,7 @@ namespace UnitySourceEngine
 
         private void BuildPrefab()
         {
-            modelPrefab = new GameObject(modelName);
+            modelPrefab = new GameObject("Static_Prop_" + modelName);
             modelPrefab.transform.parent = staticPropLibrary.transform;
             modelPrefab.SetActive(false);
 

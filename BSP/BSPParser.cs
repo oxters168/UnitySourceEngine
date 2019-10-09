@@ -516,7 +516,10 @@ namespace UnitySourceEngine
 
         private StaticProps_t GetStaticProps(Stream stream, CancellationToken cancelToken)
         {
-            dgamelump_t lump = null;
+            lump_t lump = lumps[35];
+            stream.Position = lump.fileofs;
+
+            dgamelump_t gameLump = null;
 
             //Debug.Log("# Game Lumps: " + gameLumpHeader.gamelump.Length);
             for (int i = 0; i < gameLumpHeader.gamelump.Length; i++)
@@ -525,14 +528,17 @@ namespace UnitySourceEngine
                     return null;
 
                 //Debug.Log("Static Prop Dict Index: " + i + " id: " + gameLumpHeader.gamelump[i].id + " fileofs: " + gameLumpHeader.gamelump[i].fileofs + " filelen: " + gameLumpHeader.gamelump[i].filelen + " version: " + gameLumpHeader.gamelump[i].version);
-                if (gameLumpHeader.gamelump[i].id == 1936749168) { lump = gameLumpHeader.gamelump[i]; }
+                if (gameLumpHeader.gamelump[i].id == 1936749168)
+                {
+                    gameLump = gameLumpHeader.gamelump[i];
+                }
             }
 
             StaticProps_t staticProps = new StaticProps_t();
             //staticProp.staticPropDict = new StaticPropDictLump_t();
-            if (lump != null)
+            if (gameLump != null)
             {
-                stream.Position = lump.fileofs;
+                stream.Position = gameLump.fileofs;
 
                 #region Dict Lump
                 staticProps.staticPropDict.dictEntries = DataParser.ReadInt(stream);
@@ -577,38 +583,68 @@ namespace UnitySourceEngine
                     if (cancelToken.IsCancellationRequested)
                         return null;
 
-                    staticProps.staticPropInfo[i].Origin = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));       // origin
-                    staticProps.staticPropInfo[i].Origin = new Vector3(staticProps.staticPropInfo[i].Origin.x, staticProps.staticPropInfo[i].Origin.z, staticProps.staticPropInfo[i].Origin.y);
-                    staticProps.staticPropInfo[i].Angles = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));       // orientation (pitch roll yaw)
-                                                                                                                                                                        //staticProps.staticPropInfo[i].Angles = new Vector3(staticProps.staticPropInfo[i].Angles.x, staticProps.staticPropInfo[i].Angles.z, staticProps.staticPropInfo[i].Angles.y);
-                    staticProps.staticPropInfo[i].PropType = DataParser.ReadUShort(stream);     // index into model name dictionary
-                    staticProps.staticPropInfo[i].FirstLeaf = DataParser.ReadUShort(stream);    // index into leaf array
-                    staticProps.staticPropInfo[i].LeafCount = DataParser.ReadUShort(stream);
-                    staticProps.staticPropInfo[i].Solid = DataParser.ReadByte(stream);         // solidity type
-                    staticProps.staticPropInfo[i].Flags = DataParser.ReadByte(stream);
-                    staticProps.staticPropInfo[i].Skin = DataParser.ReadInt(stream);        // model skin numbers
-                    staticProps.staticPropInfo[i].FadeMinDist = DataParser.ReadFloat(stream);
-                    staticProps.staticPropInfo[i].FadeMaxDist = DataParser.ReadFloat(stream);
-                    staticProps.staticPropInfo[i].LightingOrigin = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));  // for lighting
-                                                                                                                                                                           // since v5
-                    staticProps.staticPropInfo[i].ForcedFadeScale = DataParser.ReadFloat(stream); // fade distance scale
-                                                                                                  // v6 and v7 only
-                    staticProps.staticPropInfo[i].MinDXLevel = DataParser.ReadUShort(stream);      // minimum DirectX version to be visible
-                    staticProps.staticPropInfo[i].MaxDXLevel = DataParser.ReadUShort(stream);      // maximum DirectX version to be visible
-                                                                                                   // since v8
-                    staticProps.staticPropInfo[i].MinCPULevel = DataParser.ReadByte(stream);
-                    staticProps.staticPropInfo[i].MaxCPULevel = DataParser.ReadByte(stream);
-                    staticProps.staticPropInfo[i].MinGPULevel = DataParser.ReadByte(stream);
-                    staticProps.staticPropInfo[i].MaxGPULevel = DataParser.ReadByte(stream);
-                    // since v7
-                    staticProps.staticPropInfo[i].DiffuseModulation = new Color32(DataParser.ReadByte(stream), DataParser.ReadByte(stream), DataParser.ReadByte(stream), DataParser.ReadByte(stream)); // per instance color and alpha modulation
-                                                                                                                                                                                                       // since v10
-                    staticProps.staticPropInfo[i].unknown = DataParser.ReadFloat(stream);
-                    // since v9
-                    //staticProps.staticPropInfo[i].DisableX360 = Convert.ToBoolean(FileReader.readByte(stream));     // if true, don't show on XBox 360
+                    if (gameLump.version >= 4)
+                    {
+                        float posX = DataParser.ReadFloat(stream);
+                        float posZ = DataParser.ReadFloat(stream);
+                        float posY = DataParser.ReadFloat(stream);
+                        staticProps.staticPropInfo[i].Origin = new Vector3(posX, posY, posZ); // origin
 
-                    //largestIndex = staticProps.staticPropInfo[i].PropType > largestIndex ? staticProps.staticPropInfo[i].PropType : largestIndex;
+                        float pitch = DataParser.ReadFloat(stream);
+                        float yaw = DataParser.ReadFloat(stream);
+                        float roll = DataParser.ReadFloat(stream);
+                        staticProps.staticPropInfo[i].Angles = new Vector3(pitch, yaw, roll); // orientation
 
+                        staticProps.staticPropInfo[i].PropType = DataParser.ReadUShort(stream); // index into model name dictionary
+                        staticProps.staticPropInfo[i].FirstLeaf = DataParser.ReadUShort(stream); // index into leaf array
+                        staticProps.staticPropInfo[i].LeafCount = DataParser.ReadUShort(stream);
+                        staticProps.staticPropInfo[i].Solid = DataParser.ReadByte(stream); // solidity type
+                        staticProps.staticPropInfo[i].Flags = DataParser.ReadByte(stream);
+                        staticProps.staticPropInfo[i].Skin = DataParser.ReadInt(stream); // model skin numbers
+                        staticProps.staticPropInfo[i].FadeMinDist = DataParser.ReadFloat(stream);
+                        staticProps.staticPropInfo[i].FadeMaxDist = DataParser.ReadFloat(stream);
+                        staticProps.staticPropInfo[i].LightingOrigin = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));  // for lighting
+                        if (gameLump.version >= 5)
+                        {
+                            // since v5
+                            staticProps.staticPropInfo[i].ForcedFadeScale = DataParser.ReadFloat(stream); // fade distance scale
+                            if (gameLump.version >= 6)
+                            {
+                                // v6 and v7 only
+                                staticProps.staticPropInfo[i].MinDXLevel = DataParser.ReadUShort(stream); // minimum DirectX version to be visible
+                                staticProps.staticPropInfo[i].MaxDXLevel = DataParser.ReadUShort(stream); // maximum DirectX version to be visible
+                                if (gameLump.version >= 7)
+                                {
+                                    // since v7
+                                    staticProps.staticPropInfo[i].DiffuseModulation = new Color32(DataParser.ReadByte(stream), DataParser.ReadByte(stream), DataParser.ReadByte(stream), DataParser.ReadByte(stream)); // per instance color and alpha modulation
+                                    if (gameLump.version >= 8)
+                                    {
+                                        // since v8
+                                        staticProps.staticPropInfo[i].MinCPULevel = DataParser.ReadByte(stream);
+                                        staticProps.staticPropInfo[i].MaxCPULevel = DataParser.ReadByte(stream);
+                                        staticProps.staticPropInfo[i].MinGPULevel = DataParser.ReadByte(stream);
+                                        staticProps.staticPropInfo[i].MaxGPULevel = DataParser.ReadByte(stream);
+                                        if (gameLump.version >= 9)
+                                        {
+                                            // v9 and v10 only
+                                            //bool DisableX360;       // if true, don't show on XBox 360 (4-bytes long)
+                                            //stream.Position += 4; //This value does not seem to exist!
+                                            if (gameLump.version >= 10)
+                                            {
+                                                // since v10
+                                                staticProps.staticPropInfo[i].FlagsEx = DataParser.ReadUInt(stream); // Further bitflags.
+                                                if (gameLump.version >= 11)
+                                                {
+                                                    // since v11
+                                                    staticProps.staticPropInfo[i].UniformScale = DataParser.ReadFloat(stream); // Prop scale
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     #region Full Debug
                     /*Debug.Log(i +
                         " Origin: " + staticProps.staticPropInfo[i].Origin +
@@ -638,6 +674,7 @@ namespace UnitySourceEngine
                 #endregion
             }
 
+            Debug.Log("GameLump Version: " + gameLump.version + " GameLump Start: " + gameLump.fileofs + " Current Position: " + stream.Position + " GameLump length: " + gameLump.filelen);
             return staticProps;
         }
     }

@@ -26,7 +26,9 @@ namespace UnitySourceEngine
         public static string vpkLoc;
         public static Material mapMaterial;
         public GameObject gameObject { get; private set; }
-        private List<Material> materialsCreated = new List<Material>();
+
+        private Material noTexture;
+        private Dictionary<SourceTexture, Material> materialsCreated = new Dictionary<SourceTexture, Material>();
 
         private List<FaceMesh> allFaces = new List<FaceMesh>();
         private SourceModel[] staticProps;
@@ -68,10 +70,15 @@ namespace UnitySourceEngine
             isBuilding = false;
             currentMessage = string.Empty;
 
-            foreach (Material mat in materialsCreated)
-                UnityEngine.Object.Destroy(mat);
+            if (noTexture != null)
+            {
+                UnityEngine.Object.Destroy(noTexture);
+                noTexture = null;
+            }
+            foreach (var matPair in materialsCreated)
+                UnityEngine.Object.Destroy(matPair.Value);
             materialsCreated.Clear();
-            materialsCreated = new List<Material>();
+            materialsCreated = new Dictionary<SourceTexture, Material>();
 
             if (staticProps != null)
                 foreach (SourceModel prop in staticProps)
@@ -515,20 +522,35 @@ namespace UnitySourceEngine
                 string faceName = face.faceName;
                 if (faceName == null || faceName.Length <= 0)
                     faceName = mapName + " Part";
-                GameObject faceGO = new GameObject(faceName);
+                GameObject faceGO = new GameObject("Map_Face_" + faceName);
                 faceGO.transform.parent = gameObject.transform;
                 faceGO.transform.position = face.relativePosition;
                 faceGO.transform.rotation = Quaternion.Euler(face.relativeRotation);
                 faceGO.AddComponent<MeshFilter>().mesh = face.meshData.GetMesh();
 
                 #region Set Material of GameObject
-                Material faceMaterial = new Material(materialPrefab);
-                materialsCreated.Add(faceMaterial);
-                faceMaterial.mainTextureScale = new Vector2(1, 1);
-                faceMaterial.mainTextureOffset = new Vector2(0, 0);
                 Texture2D faceTexture = face.texture?.GetTexture();
-                if (faceTexture != null)
+
+                Material faceMaterial;
+                if (faceTexture == null)
                 {
+                    if (noTexture == null)
+                    {
+                        noTexture = new Material(materialPrefab);
+                    }
+                    faceMaterial = noTexture;
+                }
+                else if (materialsCreated.ContainsKey(face.texture))
+                {
+                    faceMaterial = materialsCreated[face.texture];
+                }
+                else
+                {
+                    faceMaterial = new Material(materialPrefab);
+                    materialsCreated[face.texture] = faceMaterial;
+
+                    faceMaterial.mainTextureScale = new Vector2(1, 1);
+                    faceMaterial.mainTextureOffset = new Vector2(0, 0);
                     faceMaterial.mainTexture = faceTexture;
                     faceTexture = null;
                 }

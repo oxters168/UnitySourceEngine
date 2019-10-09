@@ -234,10 +234,15 @@ namespace UnitySourceEngine
 
                 archiveName = GetArchiveName(entry.ArchiveIndex);
                 string archivePath = Path.Combine(directoryLocation, archiveName + ".vpk");
-                using (FileStream currentStream = new FileStream(archivePath, FileMode.Open, FileAccess.Read))
+                bool archiveExists = File.Exists(archivePath);
+                UnityEngine.Debug.Assert(archiveExists, "VPKParser: Could not find archive " + archiveName + ", full path = '" + archivePath + "'");
+                if (archiveExists)
                 {
-                    currentStream.Position = fileOffset;
-                    streamActions(currentStream, fileOffset, (int)entry.EntryLength);
+                    using (FileStream currentStream = new FileStream(archivePath, FileMode.Open, FileAccess.Read))
+                    {
+                        currentStream.Position = fileOffset;
+                        streamActions(currentStream, fileOffset, (int)entry.EntryLength);
+                    }
                 }
             }
 
@@ -288,10 +293,6 @@ namespace UnitySourceEngine
             string extension = Path.GetExtension(fixedPath);
             string directory = Path.GetDirectoryName(fixedPath);
             string fileName = Path.GetFileNameWithoutExtension(fixedPath);
-            //string extension = fixedPath.Substring(fixedPath.LastIndexOf(".") + 1);
-            //string directory = fixedPath.Substring(0, fixedPath.LastIndexOf("/"));
-            //string fileName = fixedPath.Substring(fixedPath.LastIndexOf("/") + 1);
-            //fileName = fileName.Substring(0, fileName.LastIndexOf("."));
 
             return FileExists(extension, directory, fileName);
         }
