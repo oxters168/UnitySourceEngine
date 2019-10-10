@@ -31,7 +31,8 @@ namespace UnitySourceEngine
         private Dictionary<SourceTexture, Material> materialsCreated = new Dictionary<SourceTexture, Material>();
 
         private List<FaceMesh> allFaces = new List<FaceMesh>();
-        private SourceModel[] staticProps;
+        private StaticPropData[] staticProps;
+        //private SourceModel[] staticProps;
         #endregion
 
         #region Feedback
@@ -80,9 +81,12 @@ namespace UnitySourceEngine
             materialsCreated.Clear();
             materialsCreated = new Dictionary<SourceTexture, Material>();
 
+            //if (staticProps != null)
+            //    foreach (SourceModel prop in staticProps)
+            //        prop?.Dispose();
             if (staticProps != null)
-                foreach (SourceModel prop in staticProps)
-                    prop?.Dispose();
+                foreach (var prop in staticProps)
+                    prop.model?.Dispose();
             staticProps = null;
 
             foreach (var face in allFaces)
@@ -198,10 +202,12 @@ namespace UnitySourceEngine
         }
         private void ReadFaces(BSPParser bspParser, VPKParser vpkParser, CancellationToken cancelToken, Action<float, string> onProgressChanged = null)
         {
-            foreach (dface_t face in bspParser.faces)
+            for (int i = 0; i < bspParser.faces.Length; i++)
             {
                 if (cancelToken.IsCancellationRequested)
                     return;
+
+                dface_t face = bspParser.faces[i];
 
                 texflags currentTexFlags = GetFaceTextureFlags(face, bspParser);
                 string textureLocation = GetFaceTextureLocation(face, bspParser);
@@ -464,11 +470,14 @@ namespace UnitySourceEngine
 
         private void ReadStaticProps(BSPParser bspParser, VPKParser vpkParser, CancellationToken cancelToken, Action<float, string> onProgressChanged = null)
         {
-            staticProps = new SourceModel[bspParser.staticProps.staticPropInfo.Length];
+            //staticProps = new SourceModel[bspParser.staticProps.staticPropInfo.Length];
+            staticProps = new StaticPropData[bspParser.staticProps.staticPropInfo.Length];
             for (int i = 0; i < bspParser.staticProps.staticPropInfo.Length; i++)
             {
                 if (cancelToken.IsCancellationRequested)
                     return;
+
+                var currentPropInfo = bspParser.staticProps.staticPropInfo[i];
 
                 //Debug.Log("Prop: Fixing Location");
                 if (i >= bspParser.staticProps.staticPropInfo.Length)
@@ -476,7 +485,7 @@ namespace UnitySourceEngine
                     Debug.Log("Could not find model");
                     continue;
                 }
-                ushort propType = bspParser.staticProps.staticPropInfo[i].PropType;
+                ushort propType = currentPropInfo.PropType;
                 if (propType >= bspParser.staticProps.staticPropDict.names.Length)
                 {
                     Debug.Log("Could not find model");
@@ -490,9 +499,10 @@ namespace UnitySourceEngine
                 modelLocation = modelFullPath.Substring(0, modelFullPath.LastIndexOf("/"));
 
                 //Debug.Log("Prop: Grabbing Model (" + modelLocation + "/" + modelName + ".mdl" + ")");
-                staticProps[i] = SourceModel.GrabModel(vpkParser, modelName, modelLocation);
-                staticProps[i].origin = bspParser.staticProps.staticPropInfo[i].Origin;
-                staticProps[i].angles = bspParser.staticProps.staticPropInfo[i].Angles;
+                staticProps[i].model = SourceModel.GrabModel(vpkParser, modelName, modelLocation);
+
+                staticProps[i].origin = currentPropInfo.Origin;
+                staticProps[i].angles = currentPropInfo.Angles;
 
                 totalItemsLoaded++;
                 onProgressChanged?.Invoke(PercentLoaded, currentMessage);
@@ -566,13 +576,13 @@ namespace UnitySourceEngine
             }
             for (int i = 0; i < staticPropsCount; i++)
             {
-                SourceModel currentStaticProp = staticProps[i];
-                if (currentStaticProp != null)
+                //SourceModel currentStaticProp = staticProps[i].model;
+                if (staticProps[i].model != null)
                 {
-                    GameObject model = currentStaticProp.InstantiateGameObject();
+                    GameObject model = staticProps[i].model.InstantiateGameObject();
                     model.transform.SetParent(gameObject.transform);
-                    model.transform.localPosition = currentStaticProp.origin.FixNaN();
-                    model.transform.localRotation = Quaternion.Euler(currentStaticProp.angles).FixNaN();
+                    model.transform.localPosition = staticProps[i].origin.FixNaN();
+                    model.transform.localRotation = Quaternion.Euler(staticProps[i].angles).FixNaN();
                 }
                 totalItemsLoaded++;
                 onProgressChanged?.Invoke(PercentLoaded, currentMessage);
@@ -583,11 +593,6 @@ namespace UnitySourceEngine
             if (destroyMatAfterBuild)
                 UnityEngine.Object.Destroy(materialPrefab);
 
-#if UNITY_EDITOR
-            //MakeAsset();
-            //SaveUVValues("C:\\Users\\oxter\\Documents\\csgo\\csgoMapModels\\" + mapName + "_UV.txt");
-#endif
-
             isBuilding = false;
             isBuilt = true;
 
@@ -595,6 +600,12 @@ namespace UnitySourceEngine
         }
     }
 
+    public struct StaticPropData
+    {
+        public SourceModel model;
+        public Vector3 origin;
+        public Vector3 angles;
+    }
     public class FaceMesh
     {
         public string faceName;
@@ -618,28 +629,7 @@ namespace UnitySourceEngine
         {
             texture?.Dispose();
             meshData?.Dispose();
-            //meshData = null;
         }
-        /*public static FaceMesh Copy(FaceMesh original)
-        {
-            FaceMesh copy = null;
-            if(original != null)
-            {
-                copy = new FaceMesh();
-                copy.relativePosition = original.relativePosition;
-                copy.relativeRotation = original.relativeRotation;
-                copy.face = original.face;
-                //copy.meshData = MeshData.Copy(original.meshData);
-                copy.s = original.s;
-                copy.t = original.t;
-                copy.xOffset = original.xOffset;
-                copy.yOffset = original.yOffset;
-                copy.rawTexture = original.rawTexture;
-                copy.textureLocation = original.textureLocation;
-                copy.textureFlag = original.textureFlag;
-            }
-            return copy;
-        }*/
 
         public bool Append(FaceMesh other, bool positionStays = true)
         {

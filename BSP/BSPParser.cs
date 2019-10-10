@@ -3,6 +3,7 @@ using System.IO;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Linq;
 
 namespace UnitySourceEngine
 {
@@ -26,6 +27,9 @@ namespace UnitySourceEngine
         public dface_t[] faces;
         public int[] surfedges;
         public dplane_t[] planes;
+        public dnode_t[] nodes;
+        public dleaf_t[] leaves;
+        public ushort[] leaffaces;
 
         public ddispinfo_t[] dispInfo;
         public dDispVert[] dispVerts;
@@ -161,6 +165,13 @@ namespace UnitySourceEngine
                     planes = GetPlanes(stream, cancelToken);
 
                 if (!cancelToken.IsCancellationRequested)
+                    leaffaces = GetLeafFaces(stream, cancelToken);
+                if (!cancelToken.IsCancellationRequested)
+                    nodes = GetNodes(stream, cancelToken);
+                if (!cancelToken.IsCancellationRequested)
+                    leaves = GetLeaves(stream, cancelToken);
+
+                if (!cancelToken.IsCancellationRequested)
                     dispInfo = GetDispInfo(stream, cancelToken);
                 if (!cancelToken.IsCancellationRequested)
                     dispVerts = GetDispVerts(stream, cancelToken);
@@ -179,7 +190,86 @@ namespace UnitySourceEngine
             }
         }
 
-        private string GetEntities(Stream stream, CancellationTokenSource cancelSource = null)
+        public dnode_t GetNodeContainingLeaf(ushort leafIndex)
+        {
+            return nodes.First(currentNode => (-currentNode.children[0] - 1) == leafIndex || (-currentNode.children[1] - 1) == leafIndex);
+        }
+        public Vector3 CombineCenters(dnode_t startNode, ushort traverseAmount)
+        {
+            Vector3 center = GetNodeCenter(startNode);
+
+            var childNodes = GetTraversedNodesStartingFrom(startNode, traverseAmount);
+            foreach (var childNode in childNodes)
+                center += GetNodeCenter(childNode);
+
+            center /= childNodes.Count + 1;
+
+            return center;
+        }
+        public int GetChildNodeIndex(dnode_t node)
+        {
+            int childNodeIndex = -1;
+            if (node.children[0] >= 0)
+                childNodeIndex = 0;
+            else if (node.children[1] >= 0)
+                childNodeIndex = 1;
+
+            return childNodeIndex;
+        }
+        public bool HasChildNode(dnode_t node)
+        {
+            return GetChildNodeIndex(node) >= 0;
+        }
+        public dnode_t GetNextNodeFrom(dnode_t fromNode)
+        {
+            dnode_t nextNode;
+            int childNodeIndex = GetChildNodeIndex(fromNode);
+            if (childNodeIndex >= 0)
+                nextNode = nodes[fromNode.children[childNodeIndex]];
+            else
+                throw new InvalidOperationException("There is no next node");
+
+            return nextNode;
+        }
+        public List<dnode_t> GetTraversedNodesStartingFrom(dnode_t startNode, ushort amount)
+        {
+            List<dnode_t> childNodes = new List<dnode_t>();
+            if (amount > 0 && HasChildNode(startNode))
+            {
+                dnode_t nextNode = GetNextNodeFrom(startNode);
+                childNodes.Add(nextNode);
+                childNodes.AddRange(GetTraversedNodesStartingFrom(nextNode, (ushort)(amount - 1)));
+            }
+            return childNodes;
+        }
+        public dnode_t TraverseNodesFrom(dnode_t startNode, ushort amount)
+        {
+            dnode_t nextNode = startNode;
+            if (amount > 0 && HasChildNode(startNode))
+            {
+                nextNode = GetNextNodeFrom(startNode);
+                amount = (ushort)(amount - 1);
+                if (amount > 0)
+                    nextNode = TraverseNodesFrom(nextNode, amount);
+            }
+            return nextNode;
+        }
+        public Vector3 GetNodeCenter(dnode_t node)
+        {
+            Vector3 min = GetNodeMin(node);
+            Vector3 max = GetNodeMax(node);
+            return min + max / 2f;
+        }
+        public Vector3 GetNodeMin(dnode_t node)
+        {
+            return new Vector3(node.mins[0], node.mins[2], node.mins[1]);
+        }
+        public Vector3 GetNodeMax(dnode_t node)
+        {
+            return new Vector3(node.maxs[0], node.maxs[2], node.maxs[1]);
+        }
+
+        private string GetEntities(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[0];
             string allEntities = "";
@@ -187,7 +277,7 @@ namespace UnitySourceEngine
 
             for (int i = 0; i < lump.filelen; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 char nextChar = DataParser.ReadChar(stream);
@@ -197,7 +287,7 @@ namespace UnitySourceEngine
             return allEntities;
         }
 
-        private dbrush_t[] GetBrushes(Stream stream, CancellationTokenSource cancelSource = null)
+        private dbrush_t[] GetBrushes(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[18];
             dbrush_t[] brushes = new dbrush_t[lump.filelen / 12];
@@ -205,7 +295,7 @@ namespace UnitySourceEngine
 
             for (int i = 0; i < brushes.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 brushes[i].firstside = DataParser.ReadInt(stream);
@@ -217,7 +307,7 @@ namespace UnitySourceEngine
             return brushes;
         }
 
-        private dbrushside_t[] GetBrushSides(Stream stream, CancellationTokenSource cancelSource = null)
+        private dbrushside_t[] GetBrushSides(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[19];
             dbrushside_t[] brushSides = new dbrushside_t[lump.filelen / 8];
@@ -225,7 +315,7 @@ namespace UnitySourceEngine
 
             for (int i = 0; i < brushSides.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 brushSides[i].planenum = DataParser.ReadUShort(stream);
@@ -325,7 +415,7 @@ namespace UnitySourceEngine
             return vertices;
         }
 
-        private dface_t[] GetOriginalFaces(Stream stream, CancellationTokenSource cancelSource = null)
+        private dface_t[] GetOriginalFaces(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[27];
             dface_t[] faces = new dface_t[lump.filelen / 56];
@@ -333,7 +423,7 @@ namespace UnitySourceEngine
 
             for (int i = 0; i < faces.Length; i++)
             {
-                if (cancelSource != null && cancelSource.IsCancellationRequested)
+                if (cancelToken.IsCancellationRequested)
                     return null;
 
                 faces[i].planenum = DataParser.ReadUShort(stream);
@@ -411,6 +501,104 @@ namespace UnitySourceEngine
 
             lumpData[1] = planes;
             return planes;
+        }
+
+        private ushort[] GetLeafFaces(Stream stream, CancellationToken cancelToken)
+        {
+            lump_t lump = lumps[16];
+
+            stream.Position = lump.fileofs;
+            ushort[] leaffaces = new ushort[lump.filelen / 2];
+
+            for (int i = 0; i < leaffaces.Length; i++)
+            {
+                if (cancelToken.IsCancellationRequested)
+                    return null;
+
+                leaffaces[i] = DataParser.ReadUShort(stream);
+            }
+
+            //Debug.Log("BSP Version: " + version + " Leaf Faces Lump Start: " + lump.fileofs + " Current Position: " + stream.Position + " Leaf Faces Lump length: " + lump.filelen);
+
+            return leaffaces;
+        }
+
+        private dnode_t[] GetNodes(Stream stream, CancellationToken cancelToken)
+        {
+            lump_t lump = lumps[5];
+
+            stream.Position = lump.fileofs;
+            dnode_t[] nodes = new dnode_t[lump.filelen / 32];
+
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                if (cancelToken.IsCancellationRequested)
+                    return null;
+
+                nodes[i].planenum = DataParser.ReadInt(stream); //0 + 4 = 4
+                nodes[i].children = new int[2];
+                nodes[i].children[0] = DataParser.ReadInt(stream); //4 + 4 = 8
+                nodes[i].children[1] = DataParser.ReadInt(stream); //8 + 4 = 12
+                nodes[i].mins = new short[3];
+                nodes[i].mins[0] = DataParser.ReadShort(stream); //12 + 2 = 14
+                nodes[i].mins[1] = DataParser.ReadShort(stream); //14 + 2 = 16
+                nodes[i].mins[2] = DataParser.ReadShort(stream); //16 + 2 = 18
+                nodes[i].maxs = new short[3];
+                nodes[i].maxs[0] = DataParser.ReadShort(stream); //18 + 2 = 20
+                nodes[i].maxs[1] = DataParser.ReadShort(stream); //20 + 2 = 22
+                nodes[i].maxs[2] = DataParser.ReadShort(stream); //22 + 2 = 24
+                nodes[i].firstface = DataParser.ReadUShort(stream); //24 + 2 = 26
+                nodes[i].numfaces = DataParser.ReadUShort(stream); //26 + 2 = 28
+                nodes[i].area = DataParser.ReadShort(stream); //28 + 2 = 30
+                stream.Position += 2;
+            }
+
+            //Debug.Log("BSP Version: " + version + " Nodes Lump Start: " + lump.fileofs + " Current Position: " + stream.Position + " Nodes Lump length: " + lump.filelen);
+
+            return nodes;
+        }
+
+        private dleaf_t[] GetLeaves(Stream stream, CancellationToken cancelToken)
+        {
+            lump_t lump = lumps[10];
+
+            int leafRawBytesAmount = version >= 17 ? 32 : 56;
+            stream.Position = lump.fileofs;
+            dleaf_t[] leaves = new dleaf_t[lump.filelen / leafRawBytesAmount];
+
+            for (int i = 0; i < leaves.Length; i++)
+            {
+                if (cancelToken.IsCancellationRequested)
+                    return null;
+
+                leaves[i].contents = DataParser.ReadInt(stream); //0 + 4 = 4
+                leaves[i].cluster = DataParser.ReadShort(stream); //4 + 2 = 6
+                //short sharedAreaFlagsValue = DataParser.ReadShort(stream);
+                //leaves[i].area = (short)(sharedAreaFlagsValue & 511); //511 = 0000 0001 1111 1111
+                //leaves[i].flags = (short)((sharedAreaFlagsValue >> 9) & 127); //127 = 0000 0000 0111 1111
+                leaves[i].area = DataParser.ReadShort(stream); //6 + 2 = 8
+                leaves[i].flags = DataParser.ReadShort(stream); //8 + 2 = 10
+                leaves[i].mins = new short[3];
+                leaves[i].mins[0] = DataParser.ReadShort(stream); //10 + 2 = 12
+                leaves[i].mins[1] = DataParser.ReadShort(stream); //12 + 2 = 14
+                leaves[i].mins[2] = DataParser.ReadShort(stream); //14 + 2 = 16
+                leaves[i].maxs = new short[3];
+                leaves[i].maxs[0] = DataParser.ReadShort(stream); //16 + 2 = 18
+                leaves[i].maxs[1] = DataParser.ReadShort(stream); //18 + 2 = 20
+                leaves[i].maxs[2] = DataParser.ReadShort(stream); //20 + 2 = 22
+                leaves[i].firstleafface = DataParser.ReadUShort(stream); //22 + 2 = 24
+                leaves[i].numleaffaces = DataParser.ReadUShort(stream); //24 + 2 = 26
+                leaves[i].firstleafbrush = DataParser.ReadUShort(stream); //26 + 2 = 28
+                leaves[i].numleafbrushes = DataParser.ReadUShort(stream); //28 + 2 = 30
+                leaves[i].leafWaterDataID = DataParser.ReadShort(stream); //30 + 2 = 32
+
+                if (version < 17)
+                    stream.Position += 24;
+            }
+
+            //Debug.Log("BSP Version: " + version + " Leaves Lump Start: " + lump.fileofs + " Current Position: " + stream.Position + " Leaves Lump length: " + lump.filelen);
+
+            return leaves;
         }
 
         private int[] GetSurfedges(Stream stream, CancellationToken cancelToken)
@@ -516,11 +704,9 @@ namespace UnitySourceEngine
 
         private StaticProps_t GetStaticProps(Stream stream, CancellationToken cancelToken)
         {
-            lump_t lump = lumps[35];
-            stream.Position = lump.fileofs;
-
             dgamelump_t gameLump = null;
 
+            int staticPropsGameLumpId = 1936749168;
             //Debug.Log("# Game Lumps: " + gameLumpHeader.gamelump.Length);
             for (int i = 0; i < gameLumpHeader.gamelump.Length; i++)
             {
@@ -528,7 +714,7 @@ namespace UnitySourceEngine
                     return null;
 
                 //Debug.Log("Static Prop Dict Index: " + i + " id: " + gameLumpHeader.gamelump[i].id + " fileofs: " + gameLumpHeader.gamelump[i].fileofs + " filelen: " + gameLumpHeader.gamelump[i].filelen + " version: " + gameLumpHeader.gamelump[i].version);
-                if (gameLumpHeader.gamelump[i].id == 1936749168)
+                if (gameLumpHeader.gamelump[i].id == staticPropsGameLumpId)
                 {
                     gameLump = gameLumpHeader.gamelump[i];
                 }
@@ -590,10 +776,10 @@ namespace UnitySourceEngine
                         float posY = DataParser.ReadFloat(stream);
                         staticProps.staticPropInfo[i].Origin = new Vector3(posX, posY, posZ); // origin
 
-                        float pitch = DataParser.ReadFloat(stream);
-                        float yaw = DataParser.ReadFloat(stream);
                         float roll = DataParser.ReadFloat(stream);
-                        staticProps.staticPropInfo[i].Angles = new Vector3(pitch, yaw, roll); // orientation
+                        float yaw = DataParser.ReadFloat(stream);
+                        float pitch = DataParser.ReadFloat(stream);
+                        staticProps.staticPropInfo[i].Angles = new Vector3(pitch, yaw + 180, roll); // orientation
 
                         staticProps.staticPropInfo[i].PropType = DataParser.ReadUShort(stream); // index into model name dictionary
                         staticProps.staticPropInfo[i].FirstLeaf = DataParser.ReadUShort(stream); // index into leaf array
@@ -674,7 +860,7 @@ namespace UnitySourceEngine
                 #endregion
             }
 
-            Debug.Log("GameLump Version: " + gameLump.version + " GameLump Start: " + gameLump.fileofs + " Current Position: " + stream.Position + " GameLump length: " + gameLump.filelen);
+            //Debug.Log("GameLump Version: " + gameLump.version + " GameLump Start: " + gameLump.fileofs + " Current Position: " + stream.Position + " GameLump length: " + gameLump.filelen);
             return staticProps;
         }
     }

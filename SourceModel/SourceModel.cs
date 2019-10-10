@@ -14,12 +14,13 @@ namespace UnitySourceEngine
         public string modelLocation { get; private set; }
         private string modelKey { get { return modelLocation + modelName; } }
 
+        public int version { get; private set; }
+        public int id { get; private set; }
+
         private GameObject modelPrefab;
         private List<FaceMesh> faces = new List<FaceMesh>();
         private SourceTexture[] modelTextures;
         private List<Material> materialsCreated = new List<Material>();
-
-        public Vector3 origin, angles;
 
         private SourceModel(string name, string location)
         {
@@ -132,17 +133,22 @@ namespace UnitySourceEngine
                                     vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
                                     vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, origOffset); });
                                     vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
-                                }
-                                catch (System.Exception) { }
 
-                                if (mdl.bodyParts == null)
+                                    version = mdl.header1.version;
+                                    id = mdl.header1.id;
+
+                                    if (mdl.bodyParts != null)
+                                    {
+                                        GetTextures(mdl, vpkParser);
+                                        ReadFaceMeshes(mdl, vvd, vtx, vpkParser);
+                                    }
+                                    else
+                                        Debug.LogError("SourceModel: Could not find body parts of " + modelKey);
+                                }
+                                catch (System.Exception e)
                                 {
-                                    Debug.LogError("SourceModel: Could not find body parts of " + modelKey);
-                                    return;
+                                    Debug.LogError("SourceModel: " + e.ToString());
                                 }
-
-                                GetTextures(mdl, vpkParser);
-                                ReadFaceMeshes(mdl, vvd, vtx, vpkParser);
                             }
                         }
                         else
@@ -155,7 +161,7 @@ namespace UnitySourceEngine
                     Debug.LogError("SourceModel: Could not find mdl file in vpk (" + mdlPath + ")");
             }
             else
-                Debug.Log("SourceModel: VPK parser is null");
+                Debug.LogError("SourceModel: VPK parser is null");
         }
         private void GetTextures(MDLParser mdl, VPKParser vpkParser)
         {
@@ -244,7 +250,7 @@ namespace UnitySourceEngine
 
         private void BuildPrefab()
         {
-            modelPrefab = new GameObject("Static_Prop_" + modelName);
+            modelPrefab = new GameObject("StaticProp_v" + version + "_id" + id + "_" + modelName);
             modelPrefab.transform.parent = staticPropLibrary.transform;
             modelPrefab.SetActive(false);
 
