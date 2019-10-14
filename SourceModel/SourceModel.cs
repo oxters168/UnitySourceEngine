@@ -63,24 +63,24 @@ namespace UnitySourceEngine
             modelPrefab = null;
         }
 
-        public static SourceModel GrabModel(VPKParser vpkParser, string fullModelPath)
+        public static SourceModel GrabModel(BSPParser bspParser, VPKParser vpkParser, string rawPath)
         {
             SourceModel model = null;
 
             string modelName = "";
-            string modelLocation = fullModelPath.Replace("\\", "/").ToLower();
+            string modelLocation = rawPath.Replace("\\", "/").ToLower();
 
             if (modelLocation.IndexOf("/") > -1)
             {
                 modelName = modelLocation.Substring(modelLocation.LastIndexOf("/") + 1);
                 modelLocation = modelLocation.Substring(0, modelLocation.LastIndexOf("/") + 1);
 
-                model = GrabModel(vpkParser, modelName, modelLocation);
+                model = GrabModel(bspParser, vpkParser, modelName, modelLocation);
             }
 
             return model;
         }
-        public static SourceModel GrabModel(VPKParser vpkParser, string name, string location)
+        public static SourceModel GrabModel(BSPParser bspParser, VPKParser vpkParser, string name, string location)
         {
             SourceModel model = null;
 
@@ -101,12 +101,12 @@ namespace UnitySourceEngine
             else
             {
                 model = new SourceModel(fixedModelName, fixedModelLocation);
-                model.Parse(vpkParser);
+                model.Parse(bspParser, vpkParser);
             }
 
             return model;
         }
-        private void Parse(VPKParser vpkParser)
+        private void Parse(BSPParser bspParser, VPKParser vpkParser)
         {
             if (vpkParser != null)
             {
@@ -139,8 +139,8 @@ namespace UnitySourceEngine
 
                                     if (mdl.bodyParts != null)
                                     {
-                                        GetTextures(mdl, vpkParser);
-                                        ReadFaceMeshes(mdl, vvd, vtx, vpkParser);
+                                        GetTextures(mdl, bspParser, vpkParser);
+                                        ReadFaceMeshes(mdl, vvd, vtx, bspParser, vpkParser);
                                     }
                                     else
                                         Debug.LogError("SourceModel: Could not find body parts of " + modelKey);
@@ -152,18 +152,18 @@ namespace UnitySourceEngine
                             }
                         }
                         else
-                            Debug.LogError("SourceModel: Could not find vtx file in vpk (" + vtxPath + ")");
+                            Debug.LogError("SourceModel: Could not find vtx file (" + vtxPath + ")");
                     }
                     else
-                        Debug.LogError("SourceModel: Could not find vvd file in vpk (" + vvdPath + ")");
+                        Debug.LogError("SourceModel: Could not find vvd file (" + vvdPath + ")");
                 }
                 else
-                    Debug.LogError("SourceModel: Could not find mdl file in vpk (" + mdlPath + ")");
+                    Debug.LogError("SourceModel: Could not find mdl file (" + mdlPath + ")");
             }
             else
                 Debug.LogError("SourceModel: VPK parser is null");
         }
-        private void GetTextures(MDLParser mdl, VPKParser vpkParser)
+        private void GetTextures(MDLParser mdl, BSPParser bspParser, VPKParser vpkParser)
         {
             if (mdl != null && vpkParser != null)
             {
@@ -180,7 +180,7 @@ namespace UnitySourceEngine
                             textureName = mdl.textures[i].name.Replace("\\", "/").ToLower();
                         if (textureName.IndexOf(texturePath) > -1)
                             texturePath = "";
-                        modelTextures[i] = SourceTexture.GrabTexture(vpkParser, texturePath + textureName);
+                        modelTextures[i] = SourceTexture.GrabTexture(bspParser, vpkParser, texturePath + textureName);
                     }
                     #endregion
                 }
@@ -190,62 +190,100 @@ namespace UnitySourceEngine
                 }
             }
         }
-        private void ReadFaceMeshes(MDLParser mdl, VVDParser vvd, VTXParser vtx, VPKParser vpkParser)
+        private void ReadFaceMeshes(MDLParser mdl, VVDParser vvd, VTXParser vtx, BSPParser bspParser, VPKParser vpkParser)
         {
             int textureIndex = 0;
             if (mdl.bodyParts.Length == vtx.bodyParts.Length)
             {
-                for (int i = 0; i < mdl.bodyParts.Length; i++)
+                for (int bodyPartIndex = 0; bodyPartIndex < mdl.bodyParts.Length; bodyPartIndex++)
                 {
-                    for (int j = 0; j < mdl.bodyParts[i].models.Length; j++)
+                    for (int modelIndex = 0; modelIndex < mdl.bodyParts[bodyPartIndex].models.Length; modelIndex++)
                     {
-                        int currentPosition = 0;
-                        for (int k = 0; k < mdl.bodyParts[i].models[j].theMeshes.Length; k++)
+                        //int currentPosition = 0;
+                        for (int meshIndex = 0; meshIndex < mdl.bodyParts[bodyPartIndex].models[modelIndex].theMeshes.Length; meshIndex++)
                         {
+                            int rootLodIndex = mdl.header1.rootLod;
+                            //int rootLodIndex = 0;
+                            //int rootLodCount = 1;
+                            //if (mdl.header1.numAllowedRootLods == 0)
+                            //    rootLodCount = vtx.header.numLODs;
+
                             FaceMesh currentFace = new FaceMesh();
 
-                            Vector3[] vertices = new Vector3[mdl.bodyParts[i].models[j].theMeshes[k].vertexData.lodVertexCount[mdl.header1.rootLod]];
-                            Vector3[] normals = new Vector3[mdl.bodyParts[i].models[j].theMeshes[k].vertexData.lodVertexCount[mdl.header1.rootLod]];
-                            Vector2[] uv = new Vector2[mdl.bodyParts[i].models[j].theMeshes[k].vertexData.lodVertexCount[mdl.header1.rootLod]];
-                            for (int l = 0; l < vertices.Length; l++)
+                            int verticesStartIndex = mdl.bodyParts[bodyPartIndex].models[modelIndex].theMeshes[meshIndex].vertexIndexStart;
+                            int vertexCount = mdl.bodyParts[bodyPartIndex].models[modelIndex].theMeshes[meshIndex].vertexData.lodVertexCount[rootLodIndex];
+
+                            Vector3[] vertices = new Vector3[vertexCount];
+                            Vector3[] normals = new Vector3[vertexCount];
+                            Vector2[] uv = new Vector2[vertexCount];
+
+                            for (int verticesIndex = 0; verticesIndex < vertices.Length; verticesIndex++)
                             {
-                                if (currentPosition < vvd.vertices[mdl.header1.rootLod].Length)
-                                    vertices[l] = vvd.vertices[mdl.header1.rootLod][currentPosition].m_vecPosition;
-                                if (currentPosition < vvd.vertices[mdl.header1.rootLod].Length)
-                                    normals[l] = vvd.vertices[mdl.header1.rootLod][currentPosition].m_vecNormal;
-                                if (currentPosition < vvd.vertices[mdl.header1.rootLod].Length)
-                                    uv[l] = vvd.vertices[mdl.header1.rootLod][currentPosition].m_vecTexCoord;
-                                currentPosition++;
+                                vertices[verticesIndex] = vvd.vertices[verticesStartIndex + verticesIndex].m_vecPosition;
+                                normals[verticesIndex] = vvd.vertices[verticesStartIndex + verticesIndex].m_vecNormal;
+                                uv[verticesIndex] = vvd.vertices[verticesStartIndex + verticesIndex].m_vecTexCoord;
                             }
 
-                            int[] triangles = new int[vtx.bodyParts[i].theVtxModels[j].theVtxModelLods[0].theVtxMeshes[k].theVtxStripGroups[0].theVtxIndices.Length];
-                            for (int l = 0; l < vtx.bodyParts[i].theVtxModels[j].theVtxModelLods[0].theVtxMeshes[k].theVtxStripGroups[0].theVtxIndices.Length; l++)
-                            {
-                                triangles[l + 0] = vtx.bodyParts[i].theVtxModels[j].theVtxModelLods[0].theVtxMeshes[k].theVtxStripGroups[0].theVtxVertices[vtx.bodyParts[i].theVtxModels[j].theVtxModelLods[0].theVtxMeshes[k].theVtxStripGroups[0].theVtxIndices[l + 0]].originalMeshVertexIndex;
-                            }
+                            List<int> triangles = new List<int>();
+                            //for (int countUpLodIndex = 0; countUpLodIndex <= rootLodIndex; countUpLodIndex++)
+                            //{
+                                for (int stripGroupIndex = 0; stripGroupIndex < vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].stripGroupCount; stripGroupIndex++)
+                                {
+                                    //var currentStripGroup = vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups[0];
+                                    var currentStripGroup = vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups[stripGroupIndex];
+                                    //int trianglesCount = currentStripGroup.theVtxIndices.Length;
+                                    //int[] triangles = new int[trianglesCount];
+
+                                    for (int stripIndex = 0; stripIndex < currentStripGroup.theVtxStrips.Length; stripIndex++)
+                                    {
+                                        var currentStrip = currentStripGroup.theVtxStrips[stripIndex];
+
+                                        for (int indexIndex = 0; indexIndex < currentStrip.indexCount; indexIndex += 3)
+                                        {
+                                            int vertexIndexA = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex]].originalMeshVertexIndex;
+                                            int vertexIndexB = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex + 1]].originalMeshVertexIndex;
+                                            int vertexIndexC = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex + 2]].originalMeshVertexIndex;
+
+                                            if (vertexIndexA < vertices.Length && vertexIndexB < vertices.Length && vertexIndexC < vertices.Length)
+                                            {
+                                                triangles.Add(vertexIndexA);
+                                                triangles.Add(vertexIndexB);
+                                                triangles.Add(vertexIndexC);
+                                            }
+                                        }
+                                    }
+                                }
+                            //}
+
+                            Debug.Assert(triangles.Count % 3 == 0, "SourceModel: Triangles not a multiple of three for " + modelName);
+                            Debug.Assert(vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups.Length == 1, "SourceModel: Strip groups not one (" + vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups.Length  + ") for " + modelName);
+                            Debug.Assert(mdl.header1.includemodel_count <= 0, "SourceModel: Include model count greater than zero (" + mdl.header1.includemodel_count + ", " + mdl.header1.includemodel_index + ") for " + modelName);
+                            Debug.Assert(mdl.header1.numAllowedRootLods == 1, "SourceModel: Allowed root lods not one (" + mdl.header1.numAllowedRootLods + ", vtx#" + vtx.header.numLODs + ", vvd#" + vvd.header.numLODs + ", vvd2#" + vvd.header.numLODVertices + ", root" + mdl.header1.rootLod + ") for " + modelName);
+                            Debug.Assert(vvd.header.numFixups <= 0, "SourceModel: " + vvd.header.numFixups + " fixups found for " + modelName);
 
                             MeshData meshData = new MeshData();
                             meshData.vertices = vertices;
-                            meshData.triangles = triangles;
+                            meshData.triangles = triangles.ToArray();
                             meshData.normals = normals;
                             meshData.uv = uv;
 
                             currentFace.meshData = meshData;
                             string textureLocation = "";
-                            if (modelTextures != null && textureIndex < modelTextures.Length)
+                            if (modelTextures != null && textureIndex < modelTextures.Length) //Should not have this line
                                 textureLocation = modelTextures[textureIndex]?.location;
-                            textureIndex++;
 
                             currentFace.faceName = textureLocation;
                             if (!excludeTextures)
-                                currentFace.texture = SourceTexture.GrabTexture(vpkParser, textureLocation);
+                                currentFace.texture = SourceTexture.GrabTexture(bspParser, vpkParser, textureLocation);
                             faces.Add(currentFace);
+
+                            textureIndex++;
                         }
                     }
                 }
             }
             else
-                Debug.Log("SourceModel: MDL and VTX body part count doesn't match (" + modelLocation + ")");
+                Debug.LogError("SourceModel: MDL and VTX body part count doesn't match (" + modelLocation + ")");
         }
 
         private void BuildPrefab()

@@ -24,29 +24,6 @@ namespace UnitySourceEngine
             location = textureLocation;
             loadedTextures.Add(location, this);
         }
-        /*public SourceTexture(SourceTexture other)
-        {
-            location = other.location;
-
-            if(other.texture != null)
-            {
-                texture = new Texture2D(other.texture.width, other.texture.height);
-                texture.SetPixels(other.texture.GetPixels());
-                //texture.hideFlags = HideFlags.HideAndDontSave;
-            }
-            if (other.pixels != null)
-            {
-                pixels = new Color[other.pixels.Length];
-                Array.Copy(other.pixels, pixels, pixels.Length);
-                //DataParser.AlternateCopy(other.pixels, pixels, pixels.Length);
-            }
-            else pixels = new Color[0];
-            width = other.width; height = other.height;
-        }
-        public SourceTexture(int _width, int _height)
-        {
-            Resize(_width, _height);
-        }*/
 
         public void Dispose()
         {
@@ -64,45 +41,6 @@ namespace UnitySourceEngine
             loadedTextures = new Dictionary<string, SourceTexture>();
         }
 
-
-        /*public void Resize(int _width, int _height)
-        {
-            width = _width;
-            height = _height;
-            pixels = new Color[width * height];
-        }
-        public Color[] GetPixels()
-        {
-            Color[] toBeCopied = new Color[0];
-
-            if (pixels != null)
-                toBeCopied = pixels;
-            else if (texture != null)
-                toBeCopied = texture.GetPixels();
-
-            Color[] pixelsCopy = new Color[toBeCopied.Length];
-            Array.Copy(toBeCopied, pixelsCopy, toBeCopied.Length);
-            //DataParser.AlternateCopy(toBeCopied, pixelsCopy, toBeCopied.Length);
-            return pixelsCopy;
-        }
-        public void SetPixels(int x, int y, int width, int height, Color[] toSet)
-        {
-            int pixelsIndex = (y * this.width) + x;
-            int setSize = width * height;
-            if(pixelsIndex >= 0 && pixelsIndex + setSize <= pixels.Length)
-            {
-                for(int row = 0; row < height; row++)
-                {
-                    Array.Copy(toSet, row * width, pixels, pixelsIndex + row * this.width, width);
-                    //DataParser.AlternateCopy(toSet, row * width, pixels, pixelsIndex + row * this.width, width);
-                }
-            }
-        }
-        public void SetPixels(Color[] toSet)
-        {
-            SetPixels(0, 0, width, height, toSet);
-        }*/
-
         public Texture2D GetTexture()
         {
             if (texture == null)
@@ -113,15 +51,18 @@ namespace UnitySourceEngine
             }
             return texture;
         }
+        public static SourceTexture ReadAndCache(byte[] vtfData, string location)
+        {
+            SourceTexture vtf;
+            using (MemoryStream ms = new MemoryStream(vtfData))
+            {
+                vtf = ReadAndCache(ms, vtfData.Length, location);
+            }
+            return vtf;
+        }
         public static SourceTexture ReadAndCache(Stream stream, int origOffset, string location)
         {
-            string fixedLocation = location.ToLower();
-            if (fixedLocation.LastIndexOf(".") > 0)
-                fixedLocation = fixedLocation.Substring(0, fixedLocation.LastIndexOf("."));
-            if (fixedLocation.IndexOf("materials/") >= 0)
-                fixedLocation = fixedLocation.Substring(fixedLocation.IndexOf("materials/") + "materials/".Length);
-
-            //Debug.Log("Storing " + fixedLocation);
+            string fixedLocation = location.Replace("\\", "/").ToLower();
 
             SourceTexture srcTexture = null;
             if (loadedTextures.ContainsKey(fixedLocation))
@@ -157,110 +98,67 @@ namespace UnitySourceEngine
 
             return srcTexture;
         }
-        public static SourceTexture GrabTexture(VPKParser vpkParser, string rawStringPath)
+        public static SourceTexture GrabTexture(BSPParser bspParser, VPKParser vpkParser, string rawPath)
         {
             SourceTexture srcTexture = null;
 
-            Debug.Assert(!string.IsNullOrEmpty(rawStringPath), "SourceTexture: Texture string path is null or empty");
-
-            if (!string.IsNullOrEmpty(rawStringPath))
+            if (!string.IsNullOrEmpty(rawPath))
             {
-                string actualLocation = LocateInVPK(vpkParser, rawStringPath);
-                if (string.IsNullOrEmpty(actualLocation))
-                    actualLocation = rawStringPath;
-
-                if (loadedTextures.ContainsKey(actualLocation))
+                string vtfFilePath = FixLocation(bspParser, vpkParser, rawPath);
+                if (!string.IsNullOrEmpty(vtfFilePath))
                 {
-                    srcTexture = loadedTextures[actualLocation];
-                }
-                else
-                {
-                    string vtfFilePath = "/materials/" + actualLocation + ".vtf";
-
-                    if (vpkParser.FileExists(vtfFilePath))
+                    if (loadedTextures.ContainsKey(vtfFilePath))
                     {
-                        try
-                        {
-                            vpkParser.LoadFileAsStream(vtfFilePath, (stream, origOffset, fileLength) => { srcTexture = ReadAndCache(stream, origOffset, vtfFilePath); });
-                        }
-                        catch (Exception e)
-                        {
-                            Debug.LogError("SourceTexture: " + e.ToString());
-                        }
+                        srcTexture = loadedTextures[vtfFilePath];
                     }
                     else
                     {
-                        Debug.LogError("SourceTexture: Could not find Texture FixedPath(" + vtfFilePath + ") RawPath(" + rawStringPath + ")");
+                        if (bspParser != null && bspParser.HasPakFile(vtfFilePath))
+                        {
+                            //Debug.Log("Loaded " + vtfFilePath + " from pakfile");
+                            srcTexture = ReadAndCache(bspParser.GetPakFile(vtfFilePath), vtfFilePath);
+                        }
+                        else if (vpkParser != null && vpkParser.FileExists(vtfFilePath))
+                        {
+                            try
+                            {
+                                vpkParser.LoadFileAsStream(vtfFilePath, (stream, origOffset, fileLength) => { srcTexture = ReadAndCache(stream, origOffset, vtfFilePath); });
+                            }
+                            catch (Exception e)
+                            {
+                                Debug.LogError("SourceTexture: " + e.ToString());
+                            }
+                        }
+                        else
+                            Debug.LogError("SourceTexture: Could not find Texture FixedPath(" + vtfFilePath + ") RawPath(" + rawPath + ")");
                     }
-
                 }
+                else
+                    Debug.LogError("SourceTexture: Could not find texture at " + rawPath);
             }
+            else
+                Debug.LogError("SourceTexture: Texture string path is null or empty");
+
             return srcTexture;
         }
 
-        public static string LocateInVPK(VPKParser vpkParser, string rawPath)
+        public static string FixLocation(BSPParser bspParser, VPKParser vpkParser, string rawPath)
         {
-            //string fixedLocation = PatchNameInVPK(vpkParser, RemoveMisleadingPath(rawPath.Replace("\\", "/")), "vtf");
             string fixedLocation = rawPath.Replace("\\", "/").ToLower();
 
-            if (!vpkParser.FileExists("/materials/" + fixedLocation + ".vtf"))
-            {
-                //fixedLocation = PatchNameInVPK(vpkParser, RemoveMisleadingPath(rawPath.Replace("\\", "/")), "vmt");
+            string vmtProxy = VMTData.GrabVMT(bspParser, vpkParser, rawPath)?.vtfPath;
 
-                //string vmtPath = fixedLocation;
-                fixedLocation = VMTData.GrabVMT(vpkParser, fixedLocation)?.vtfPath;
-                //if (vmtPointingTo.Length > 0)
-                //    fixedLocation = PatchNameInVPK(vpkParser, RemoveMisleadingPath(vmtPointingTo.Replace("\\", "/")), "vtf");
-            }
+            if (!string.IsNullOrEmpty(vmtProxy))
+                fixedLocation = vmtProxy;
+
+            if ((bspParser == null || !bspParser.HasPakFile(fixedLocation)) && (vpkParser == null || !vpkParser.FileExists(fixedLocation)))
+                fixedLocation += ".vtf";
+            if ((bspParser == null || !bspParser.HasPakFile(fixedLocation)) && (vpkParser == null || !vpkParser.FileExists(fixedLocation)))
+                fixedLocation = Path.Combine("materials", fixedLocation).Replace("\\", "/");
 
             return fixedLocation;
         }
 
-        public static string PatchNameInVPK(VPKParser vpkParser, string original, params string[] ext)
-        {
-            string prep = original.Replace("\\", "/");
-            if (prep.IndexOf("/") == 0)
-                prep = prep.Substring(1);
-
-            string subDir = "";
-            //List<string> extensions = new List<string>();
-            string patched = "";
-            //extensions.AddRange(ext);
-
-            if (prep.LastIndexOf("/") > -1)
-            {
-                subDir = prep.Substring(0, prep.LastIndexOf("/") + 1);
-                patched = prep.Substring(prep.LastIndexOf("/") + 1);
-            }
-            else patched = prep;
-
-            while (patched.Length > 0)
-            {
-                try
-                {
-                    bool found = false;
-                    foreach (string extension in ext)
-                    {
-                        if (vpkParser.FileExists("/materials/" + subDir + patched + "." + extension))
-                        {
-                            prep = subDir + patched;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found)
-                        break;
-                }
-                catch (System.Exception e)
-                {
-                    Debug.Log(e.Message);
-                }
-
-                patched = patched.Substring(0, patched.Length - 1);
-            }
-
-            return prep;
-        }
         /// <summary>
         /// Removes "maps/" from the path and underscore
         /// </summary>
@@ -432,8 +330,10 @@ namespace UnitySourceEngine
                     }
                     #endregion
 
-                    int thumbnailBufferSize = 0, imageBufferSize = (int)ComputeImageBufferSize(vtfHeader.width, vtfHeader.height, vtfHeader.depth, vtfHeader.mipmapCount, vtfHeader.highResImageFormat) * vtfHeader.frames;
-                    if (vtfHeader.lowResImageFormat != VTFImageFormat.IMAGE_FORMAT_NONE) thumbnailBufferSize = (int)ComputeImageBufferSize(vtfHeader.lowResImageWidth, vtfHeader.lowResImageHeight, 1, vtfHeader.lowResImageFormat);
+                    int thumbnailBufferSize = 0;
+                    int imageBufferSize = (int)ComputeImageBufferSize(vtfHeader.width, vtfHeader.height, vtfHeader.depth, vtfHeader.mipmapCount, vtfHeader.highResImageFormat) * vtfHeader.frames;
+                    if (vtfHeader.lowResImageFormat != VTFImageFormat.IMAGE_FORMAT_NONE)
+                        thumbnailBufferSize = (int)ComputeImageBufferSize(vtfHeader.lowResImageWidth, vtfHeader.lowResImageHeight, 1, vtfHeader.lowResImageFormat);
 
                     int thumbnailBufferOffset = 0, imageBufferOffset = 0;
 
@@ -468,9 +368,12 @@ namespace UnitySourceEngine
                         //DataParser.ReadBytes(ms, imageBufferOffset + mipmapBufferOffset, imageBufferSize);
 
                         extracted = DecompressImage(imageData, vtfHeader.width, vtfHeader.height, vtfHeader.highResImageFormat);
-                        width = vtfHeader.width; height = vtfHeader.height;
+                        width = vtfHeader.width;
+                        height = vtfHeader.height;
                         imageData = null;
                     }
+                    else
+                        Debug.LogError("SourceTexture: Image format given was none");
                 }
                 else
                     Debug.LogError("SourceTexture: Signature mismatch " + signature + " != " + VTFHeader.signature);
@@ -490,10 +393,36 @@ namespace UnitySourceEngine
                 vtfColors = DecompressDXT3(data, width, height);
             else if (imageFormat == VTFImageFormat.IMAGE_FORMAT_DXT5)
                 vtfColors = DecompressDXT5(data, width, height);
+            else if (imageFormat == VTFImageFormat.IMAGE_FORMAT_BGR888)
+                vtfColors = DecompressBGR888(data, width, height);
+            else
+                Debug.LogError("SourceTexture: Unable to decompress format " + imageFormat);
 
             vtfColors = RotateProperly(vtfColors, width, height);
 
             return vtfColors;
+        }
+        private static Color[] DecompressBGR888(byte[] data, ushort width, ushort height)
+        {
+            Color[] texture2DColors = new Color[width * height];
+
+            int currentDataIndex = 0;
+            for (int row = 0; row < height; row++)
+            {
+                for (int col = 0; col < width; col++)
+                {
+                    byte blue = data[currentDataIndex];
+                    byte green = data[currentDataIndex + 1];
+                    byte red = data[currentDataIndex + 2];
+                    currentDataIndex += 4;
+
+                    int flattenedIndex = row * width + col;
+                    texture2DColors[flattenedIndex] = new Color(((float)red) / byte.MaxValue, ((float)green) / byte.MaxValue, ((float)blue) / byte.MaxValue);
+                }
+            }
+
+            Debug.Log("Read BGR888 width " + width + " height " + height + " data size " + data.Length + " stepped " + currentDataIndex);
+            return texture2DColors;
         }
         private static Color[] DecompressDXT1(byte[] data, ushort width, ushort height)
         {

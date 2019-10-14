@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.IO;
 using System;
+using System.Collections.Generic;
 
 namespace UnitySourceEngine
 {
@@ -10,7 +11,8 @@ namespace UnitySourceEngine
         //private byte[] data;
         public vertexFileHeader_t header;
         public vertexFileFixup_t[] fileFixup;
-        public mstudiovertex_t[][] vertices;
+        //public mstudiovertex_t[][] vertices;
+        public mstudiovertex_t[] vertices;
 
         private long fileOffsetPosition;
 
@@ -42,11 +44,15 @@ namespace UnitySourceEngine
                 //data = null;
                 header.Dispose();
                 fileFixup = null;
+                //if (vertices != null)
+                //    foreach (var subVertices in vertices)
+                //        if (subVertices != null)
+                //            foreach (var vertex in subVertices)
+                //                vertex.Dispose();
                 if (vertices != null)
-                    foreach (var subVertices in vertices)
-                        if (subVertices != null)
-                            foreach (var vertex in subVertices)
-                                vertex.Dispose();
+                    foreach (var vertex in vertices)
+                        vertex.Dispose();
+
                 vertices = null;
             }
         }
@@ -60,11 +66,11 @@ namespace UnitySourceEngine
             //using (var stream = new MemoryStream(data))
             //{
             ParseHeader(stream);
-            ParseVertices(stream);
             ParseFixupTable(stream);
+            ParseVertices(stream);
             //}
         }
-        private vertexFileHeader_t ParseHeader(Stream stream)
+        private void ParseHeader(Stream stream)
         {
             header = new vertexFileHeader_t();
 
@@ -83,10 +89,8 @@ namespace UnitySourceEngine
             header.fixupTableStart = DataParser.ReadInt(stream); // offset from base to fixup table
             header.vertexDataStart = DataParser.ReadInt(stream); // offset from base to vertex block
             header.tangentDataStart = DataParser.ReadInt(stream); // offset from base to tangent block
-
-            return header;
         }
-        private vertexFileFixup_t[] ParseFixupTable(Stream stream)
+        private void ParseFixupTable(Stream stream)
         {
             fileFixup = new vertexFileFixup_t[header.numFixups];
 
@@ -97,10 +101,8 @@ namespace UnitySourceEngine
                 fileFixup[i].sourceVertexID = DataParser.ReadInt(stream); // absolute index from start of vertex/tangent blocks
                 fileFixup[i].numVertices = DataParser.ReadInt(stream);
             }
-
-            return fileFixup;
         }
-        private mstudiovertex_t[][] ParseVertices(Stream stream)
+        /*private mstudiovertex_t[][] ParseVertices(Stream stream)
         {
             if (header.numLODs > 0)
             {
@@ -124,17 +126,131 @@ namespace UnitySourceEngine
                         }
                         vertices[i][j].m_BoneWeights.numbones = DataParser.ReadByte(stream);
 
-                        vertices[i][j].m_vecPosition = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
-                        vertices[i][j].m_vecPosition = new Vector3(vertices[i][j].m_vecPosition.x, vertices[i][j].m_vecPosition.z, vertices[i][j].m_vecPosition.y);
-                        vertices[i][j].m_vecNormal = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
-                        vertices[i][j].m_vecNormal = new Vector3(vertices[i][j].m_vecNormal.x, vertices[i][j].m_vecNormal.z, vertices[i][j].m_vecNormal.y);
-                        vertices[i][j].m_vecTexCoord = new Vector2(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
-                        vertices[i][j].m_vecTexCoord = new Vector2(vertices[i][j].m_vecTexCoord.x, 1 - vertices[i][j].m_vecTexCoord.y);
+                        float ex = DataParser.ReadFloat(stream);
+                        float zee = DataParser.ReadFloat(stream);
+                        float why = DataParser.ReadFloat(stream);
+                        vertices[i][j].m_vecPosition = new Vector3(ex, why, zee);
+
+                        ex = DataParser.ReadFloat(stream);
+                        zee = DataParser.ReadFloat(stream);
+                        why = DataParser.ReadFloat(stream);
+                        vertices[i][j].m_vecNormal = new Vector3(ex, why, zee);
+
+                        ex = DataParser.ReadFloat(stream);
+                        why = DataParser.ReadFloat(stream);
+                        vertices[i][j].m_vecTexCoord = new Vector2(ex, 1 - why);
                     }
                 }
             }
 
             return vertices;
+        }*/
+        private void ParseVertices(Stream stream)
+        {
+            //for (int i = 0; i < rootLOD; i++)
+            //    header.numLODVertices[i] = header.numLODVertices[rootLOD];
+
+            int lodIndex = 0;
+
+            if (header.numLODs > 0)
+            {
+                Func<Stream, mstudiovertex_t> ReadVertexFromStream = (innerStream) =>
+                {
+                    mstudiovertex_t vertex = new mstudiovertex_t();
+
+                    vertex.m_BoneWeights.weight = new float[MAX_NUM_BONES_PER_VERT]; //0 + 12 = 12
+                    for (int k = 0; k < vertex.m_BoneWeights.weight.Length; k++)
+                        vertex.m_BoneWeights.weight[k] = DataParser.ReadFloat(innerStream);
+
+                    vertex.m_BoneWeights.bone = new char[MAX_NUM_BONES_PER_VERT]; //12 + 12 = 24
+                    for (int k = 0; k < vertex.m_BoneWeights.bone.Length; k++)
+                        vertex.m_BoneWeights.bone[k] = DataParser.ReadChar(innerStream);
+
+                    vertex.m_BoneWeights.numbones = DataParser.ReadByte(innerStream); //24 + 1 = 25
+
+                    float ex = DataParser.ReadFloat(innerStream); //25 + 4 = 29
+                    float zee = DataParser.ReadFloat(innerStream); //29 + 4 = 33
+                    float why = DataParser.ReadFloat(innerStream); //33 + 4 = 37
+                    vertex.m_vecPosition = new Vector3(ex, why, zee);
+
+                    ex = DataParser.ReadFloat(innerStream); //37 + 4 = 41
+                    zee = DataParser.ReadFloat(innerStream); //41 + 4 = 45
+                    why = DataParser.ReadFloat(innerStream); //45 + 4 = 49
+                    vertex.m_vecNormal = new Vector3(ex, why, zee);
+
+                    ex = DataParser.ReadFloat(innerStream); //49 + 4 = 53
+                    why = DataParser.ReadFloat(innerStream); //53 + 4 = 57
+                    vertex.m_vecTexCoord = new Vector2(ex, 1 - why);
+                    return vertex;
+                };
+
+                //if (header.numFixups <= 0)
+                //{
+                stream.Position = fileOffsetPosition + header.vertexDataStart;
+
+                int vertexCount = 0;
+                for (int i = 0; i < header.numLODVertices.Length; i++)
+                    vertexCount += header.numLODVertices[i];
+
+                vertices = new mstudiovertex_t[vertexCount];
+                for (int i = 0; i < vertices.Length; i++)
+                    vertices[i] = ReadVertexFromStream(stream);
+                //}
+                if (header.numFixups > 0)
+                {
+                    vertexCount = 0;
+                    for (int fixupIndex = 0; fixupIndex < header.numFixups; fixupIndex++)
+                    {
+                        if (fileFixup[fixupIndex].lod < lodIndex)
+                            continue;
+
+                        vertexCount += fileFixup[fixupIndex].numVertices;
+                    }
+
+                    mstudiovertex_t[] oldVertices = vertices;
+                    vertices = new mstudiovertex_t[vertexCount];
+
+                    int currentIndex = 0;
+                    for (int fixupIndex = 0; fixupIndex < header.numFixups; fixupIndex++)
+                    {
+                        if (fileFixup[fixupIndex].lod < lodIndex)
+                            continue;
+
+                        Array.Copy(oldVertices, fileFixup[fixupIndex].sourceVertexID, vertices, currentIndex, fileFixup[fixupIndex].numVertices);
+                        currentIndex += fileFixup[fixupIndex].numVertices;
+                        //stream.Position = fileOffsetPosition + header.vertexDataStart + fileFixup[fixupIndex].sourceVertexID;
+
+                        //for (int i = 0; i < fileFixup[fixupIndex].numVertices; i++)
+                        //    vertices[currentIndex++] = ReadVertexFromStream(stream);
+                    }
+                }
+                /*else
+                {
+                    int vertexCount = 0;
+                    for (int fixupIndex = 0; fixupIndex < header.numFixups; fixupIndex++)
+                    {
+                        if (fileFixup[fixupIndex].lod < lodIndex)
+                            continue;
+
+                        vertexCount += fileFixup[fixupIndex].numVertices;
+                    }
+
+                    vertices = new mstudiovertex_t[vertexCount];
+                    int currentIndex = 0;
+                    for (int fixupIndex = 0; fixupIndex < header.numFixups; fixupIndex++)
+                    {
+                        if (fileFixup[fixupIndex].lod < lodIndex)
+                            continue;
+
+                        stream.Position = fileOffsetPosition + header.vertexDataStart + fileFixup[fixupIndex].sourceVertexID;
+
+                        for (int i = 0; i < fileFixup[fixupIndex].numVertices; i++)
+                            vertices[currentIndex++] = ReadVertexFromStream(stream);
+                    }
+                }*/
+            }
+            else
+                Debug.LogError("VVDParser: Header's numLODs less than or equal to zero");
         }
     }
 }

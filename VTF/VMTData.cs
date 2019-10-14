@@ -16,15 +16,19 @@ namespace UnitySourceEngine
             vmtCache.Add(vmtPath, this);
         }
 
+        public static VMTData ReadAndCache(byte[] vmtData, string location)
+        {
+            VMTData vmt;
+            using (MemoryStream ms = new MemoryStream(vmtData))
+            {
+                vmt = ReadAndCache(ms, ms.Length, location);
+                Debug.Log("Read vmt from byte data and got " + vmt.vtfPath);
+            }
+            return vmt;
+        }
         public static VMTData ReadAndCache(Stream stream, long endOfVMT, string location)
         {
-            string fixedLocation = location.ToLower();
-            if (fixedLocation.LastIndexOf(".") > 0)
-                fixedLocation = fixedLocation.Substring(0, fixedLocation.LastIndexOf("."));
-            if (fixedLocation.IndexOf("materials/") >= 0)
-                fixedLocation = fixedLocation.Substring(fixedLocation.IndexOf("materials/") + "materials/".Length);
-
-            //UnityEngine.Debug.Log("Storing " + fixedLocation);
+            string fixedLocation = location.Replace("\\", "/").ToLower();
 
             VMTData vmtData = null;
             if (vmtCache.ContainsKey(fixedLocation))
@@ -40,38 +44,58 @@ namespace UnitySourceEngine
             return vmtData;
         }
 
-        public static VMTData GrabVMT(VPKParser vpkParser, string location)
+        public static VMTData GrabVMT(BSPParser bspParser, VPKParser vpkParser, string rawPath)
         {
             VMTData vmtData = null;
 
-            Debug.Assert(!string.IsNullOrEmpty(location));
-
-            if (!string.IsNullOrEmpty(location))
+            if (!string.IsNullOrEmpty(rawPath))
             {
-                string fixedLocation = location.Replace("\\", "/").ToLower();
+                string vmtFilePath = FixLocation(bspParser, vpkParser, rawPath);
 
-                if (vmtCache.ContainsKey(fixedLocation))
+                if (vmtCache.ContainsKey(vmtFilePath))
                 {
-                    vmtData = vmtCache[fixedLocation];
+                    vmtData = vmtCache[vmtFilePath];
                 }
                 else
                 {
-                    string vmtFilePath = "/materials/" + fixedLocation + ".vmt";
-                    if (vpkParser.FileExists(vmtFilePath))
+                    if (bspParser != null && bspParser.HasPakFile(vmtFilePath))
+                    {
+                        //Debug.Log("Loaded " + vmtFilePath + " from pakfile");
+                        vmtData = ReadAndCache(bspParser.GetPakFile(vmtFilePath), vmtFilePath);
+                    }
+                    else if (vpkParser != null && vpkParser.FileExists(vmtFilePath))
                     {
                         try
                         {
                             vpkParser.LoadFileAsStream(vmtFilePath, (stream, origOffset, fileLength) => { vmtData = ReadAndCache(stream, origOffset + fileLength, vmtFilePath); });
                         }
-                        catch (System.Exception) { }
+                        catch (System.Exception e)
+                        {
+                            Debug.LogError("VMTData: " + e.ToString());
+                        }
                     }
                     else
                     {
-                        Debug.LogError("VMT: Could not find VMT file at FixedPath(" + vmtFilePath + ") RawPath(" + location + ")");
+                        Debug.LogError("VMTData: Could not find VMT file at FixedPath(" + vmtFilePath + ") RawPath(" + rawPath + ")");
                     }
                 }
             }
+            else
+                Debug.LogError("VMTData: Texture string path is null or empty");
+
             return vmtData;
+        }
+
+        public static string FixLocation(BSPParser bspParser, VPKParser vpkParser, string rawPath)
+        {
+            string fixedLocation = rawPath.Replace("\\", "/").ToLower();
+
+            if ((bspParser == null || !bspParser.HasPakFile(fixedLocation)) && (vpkParser == null || !vpkParser.FileExists(fixedLocation)))
+                fixedLocation += ".vmt";
+            if ((bspParser == null || !bspParser.HasPakFile(fixedLocation)) && (vpkParser == null || !vpkParser.FileExists(fixedLocation)))
+                fixedLocation = Path.Combine("materials", fixedLocation).Replace("\\", "/");
+
+            return fixedLocation;
         }
 
         private static string GetLocationFromVMT(Stream stream, long endOfVMT)

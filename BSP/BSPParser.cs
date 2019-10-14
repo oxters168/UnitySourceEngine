@@ -40,6 +40,9 @@ namespace UnitySourceEngine
         public List<string> textureStringData;
 
         public StaticProps_t staticProps;
+
+        public ZIP_EndOfCentralDirRecord pakfileDirRecord;
+        public Dictionary<string, ZIP_FileHeader> pakfiles;
         #endregion
 
         public BSPParser(string fileLocation)
@@ -187,6 +190,11 @@ namespace UnitySourceEngine
 
                 if (!cancelToken.IsCancellationRequested)
                     staticProps = GetStaticProps(stream, cancelToken);
+
+                if (!cancelToken.IsCancellationRequested)
+                    pakfileDirRecord = ReadPakfileEndOfCentralDirRecord(stream, cancelToken);
+                if (!cancelToken.IsCancellationRequested)
+                    pakfiles = ReadPakFileHeaders(stream, cancelToken);
             }
         }
 
@@ -706,7 +714,7 @@ namespace UnitySourceEngine
         {
             dgamelump_t gameLump = null;
 
-            int staticPropsGameLumpId = 1936749168;
+            int staticPropsGameLumpId = GetGameLumpIdFromString("sprp");
             //Debug.Log("# Game Lumps: " + gameLumpHeader.gamelump.Length);
             for (int i = 0; i < gameLumpHeader.gamelump.Length; i++)
             {
@@ -862,6 +870,179 @@ namespace UnitySourceEngine
 
             //Debug.Log("GameLump Version: " + gameLump.version + " GameLump Start: " + gameLump.fileofs + " Current Position: " + stream.Position + " GameLump length: " + gameLump.filelen);
             return staticProps;
+        }
+
+        public ZIP_EndOfCentralDirRecord ReadPakfileEndOfCentralDirRecord(Stream stream, CancellationToken cancelToken)
+        {
+            lump_t lump = lumps[40];
+            //stream.Position = lump.fileofs + offset;
+
+            ZIP_EndOfCentralDirRecord dirRecord = new ZIP_EndOfCentralDirRecord();
+
+            int offset = lump.filelen - ZIP_EndOfCentralDirRecord.BYTE_LENGTH;
+            bool foundSignature = false;
+            for (; offset >= 0; offset--)
+            {
+                stream.Position = lump.fileofs + offset;
+                uint signature = DataParser.ReadUInt(stream); //PK56
+                foundSignature = signature == GetPKID(5, 6);
+                if (foundSignature)
+                {
+                    dirRecord.signature = signature;
+                    break;
+                }
+            }
+
+            if (foundSignature)
+            {
+                dirRecord.numberOfThisDisk = DataParser.ReadUShort(stream);
+                dirRecord.numberOfTheDiskWithStartOfCentralDirectory = DataParser.ReadUShort(stream);
+                dirRecord.nCentralDirectoryEntries_ThisDisk = DataParser.ReadUShort(stream);
+                dirRecord.nCentralDirectoryEntries_Total = DataParser.ReadUShort(stream);
+                dirRecord.centralDirectorySize = DataParser.ReadUInt(stream);
+                dirRecord.startOfCentralDirOffset = DataParser.ReadUInt(stream);
+                dirRecord.commentLength = DataParser.ReadUShort(stream);
+
+                byte[] commentBytes = new byte[dirRecord.commentLength];
+                stream.Read(commentBytes, 0, commentBytes.Length);
+                string comment = System.Text.Encoding.ASCII.GetString(commentBytes);
+                Debug.Log("Pakfile Comment: " + comment);
+            }
+            else
+                Debug.LogWarning("BSPParser: Could not find pakfile");
+
+            return dirRecord;
+        }
+        public Dictionary<string, ZIP_FileHeader> ReadPakFileHeaders(Stream stream, CancellationToken cancelToken)
+        {
+            lump_t lump = lumps[40];
+
+            Dictionary<string, ZIP_FileHeader> zipFiles = new Dictionary<string, ZIP_FileHeader>();
+
+            stream.Position = lump.fileofs + pakfileDirRecord.startOfCentralDirOffset;
+            for (int i = 0; i < pakfileDirRecord.nCentralDirectoryEntries_Total; i++)
+            {
+                ZIP_FileHeader zipFile = new ZIP_FileHeader();
+                zipFile.signature = DataParser.ReadUInt(stream);
+                zipFile.versionMadeBy = DataParser.ReadUShort(stream);
+                zipFile.versionNeededToExtract = DataParser.ReadUShort(stream);
+                zipFile.flags = DataParser.ReadUShort(stream);
+                zipFile.compressionMethod = DataParser.ReadUShort(stream);
+                zipFile.lastModifiedTime = DataParser.ReadUShort(stream); 
+                zipFile.lastModifiedDate = DataParser.ReadUShort(stream);
+                zipFile.crc32 = DataParser.ReadUInt(stream);
+                zipFile.compressedSize = DataParser.ReadUInt(stream);
+                zipFile.uncompressedSize = DataParser.ReadUInt(stream);
+                zipFile.fileNameLength = DataParser.ReadUShort(stream);
+                zipFile.extraFieldLength = DataParser.ReadUShort(stream);
+                zipFile.fileCommentLength = DataParser.ReadUShort(stream);
+                zipFile.diskNumberStart = DataParser.ReadUShort(stream);
+                zipFile.internalFileAttribs = DataParser.ReadUShort(stream);
+                zipFile.externalFileAttribs = DataParser.ReadUInt(stream);
+                zipFile.relativeOffsetOfLocalHeader = DataParser.ReadUInt(stream);
+
+                byte[] fileNameBytes = new byte[zipFile.fileNameLength];
+                stream.Read(fileNameBytes, 0, fileNameBytes.Length);
+                string fileName = System.Text.Encoding.ASCII.GetString(fileNameBytes);
+
+                stream.Position += zipFile.extraFieldLength;
+
+                byte[] fileCommentBytes = new byte[zipFile.fileCommentLength];
+                stream.Read(fileCommentBytes, 0, fileCommentBytes.Length);
+                string fileComment = System.Text.Encoding.ASCII.GetString(fileCommentBytes);
+
+                Debug.Assert(zipFile.signature == GetPKID(1, 2), "BSPParser: Pakfile has incorrect signature expected PK12");
+                Debug.Assert(zipFile.compressionMethod == 0, "BSPParser: Pakfile unknown compression method");
+                Debug.Log("Pakfile" + i + ": " + fileName + " " + fileComment);
+
+                zipFiles[fileName] = zipFile;
+            }
+            return zipFiles;
+        }
+        public bool HasPakFile(string name)
+        {
+            return pakfiles.ContainsKey(name);
+        }
+        public ZIP_FileHeader GetPakFileHeader(string name)
+        {
+            return pakfiles[name];
+        }
+        public byte[] GetPakFile(string name)
+        {
+            byte[] pakfile = null;
+
+            try
+            {
+                var fileHeader = GetPakFileHeader(name);
+
+                if (!fileHeader.Equals(default(ZIP_FileHeader)))
+                {
+                    lump_t lump = lumps[40];
+                    using (FileStream stream = new FileStream(fileLocation, FileMode.Open, FileAccess.Read))
+                    {
+                        #region Through DotNetZip
+                        /*stream.Position = lump.fileofs;
+                        using (var copiedStream = new MemoryStream())
+                        {
+                            stream.CopyTo(copiedStream);
+                            copiedStream.Position = 0;
+                            using (var zipFile = Ionic.Zip.ZipFile.Read(copiedStream))
+                            {
+                                var zipEntry = zipFile[name];
+                                using (var extractionStream = new MemoryStream())
+                                {
+                                    zipEntry.Extract(extractionStream);
+                                    extractionStream.Position = 0;
+                                    pakfile = extractionStream.ToArray();
+                                }
+                            }
+                        }*/
+                        #endregion
+
+                        #region Manual Extraction (As long as there is no compression happening i.e. compressionMethod = 0)
+                        stream.Position = lump.fileofs + fileHeader.relativeOffsetOfLocalHeader;
+
+                        ZIP_LocalFileHeader localFileHeader = new ZIP_LocalFileHeader();
+                        localFileHeader.signature = DataParser.ReadUInt(stream);
+                        localFileHeader.versionNeededToExtract = DataParser.ReadUShort(stream);
+                        localFileHeader.flags = DataParser.ReadUShort(stream);
+                        localFileHeader.compressionMethod = DataParser.ReadUShort(stream);
+                        localFileHeader.lastModifiedTime = DataParser.ReadUShort(stream);
+                        localFileHeader.lastModifiedDate = DataParser.ReadUShort(stream);
+                        localFileHeader.crc32 = DataParser.ReadUInt(stream);
+                        localFileHeader.compressedSize = DataParser.ReadUInt(stream);
+                        localFileHeader.uncompressedSize = DataParser.ReadUInt(stream);
+                        localFileHeader.fileNameLength = DataParser.ReadUShort(stream);
+                        localFileHeader.extraFieldLength = DataParser.ReadUShort(stream);
+
+                        Debug.Assert(localFileHeader.signature == GetPKID(3, 4), "BSPParser: Pakfile local header has incorrect signature expected PK34");
+
+                        byte[] fileNameBytes = new byte[localFileHeader.fileNameLength];
+                        stream.Read(fileNameBytes, 0, fileNameBytes.Length);
+                        string fileName = System.Text.Encoding.ASCII.GetString(fileNameBytes);
+
+                        stream.Position += localFileHeader.extraFieldLength;
+
+                        pakfile = new byte[localFileHeader.uncompressedSize];
+                        stream.Read(pakfile, 0, pakfile.Length);
+                        #endregion
+                    }
+                }
+            }
+            catch(Exception e)
+            {
+                Debug.LogError("BSPParser: " + e.ToString());
+            }
+
+            return pakfile;
+        }
+        public static uint GetPKID(uint a, uint b)
+        {
+            return ((b) << 24) | ((a) << 16) | ('K' << 8) | 'P';
+        }
+        public static int GetGameLumpIdFromString(string lumpName)
+        {
+            return BitConverter.ToInt32(System.Text.Encoding.ASCII.GetBytes(lumpName).Reverse().ToArray(), 0);
         }
     }
 }

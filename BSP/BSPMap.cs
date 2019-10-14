@@ -224,7 +224,7 @@ namespace UnitySourceEngine
 
                     currentFace.faceName = textureLocation;
                     if (vpkParser != null && !excludeTextures)
-                        currentFace.texture = SourceTexture.GrabTexture(vpkParser, textureLocation);
+                        currentFace.texture = SourceTexture.GrabTexture(bspParser, vpkParser, textureLocation);
                     currentFace.meshData = MakeFace(bspParser, face);
                     AddFaceMesh(currentFace, combineMeshesWithSameTextures);
                 }
@@ -499,7 +499,7 @@ namespace UnitySourceEngine
                 modelLocation = modelFullPath.Substring(0, modelFullPath.LastIndexOf("/"));
 
                 //Debug.Log("Prop: Grabbing Model (" + modelLocation + "/" + modelName + ".mdl" + ")");
-                staticProps[i].model = SourceModel.GrabModel(vpkParser, modelName, modelLocation);
+                staticProps[i].model = SourceModel.GrabModel(bspParser, vpkParser, modelName, modelLocation);
 
                 staticProps[i].origin = currentPropInfo.Origin;
                 staticProps[i].angles = currentPropInfo.Angles;
@@ -583,6 +583,7 @@ namespace UnitySourceEngine
                     model.transform.SetParent(gameObject.transform);
                     model.transform.localPosition = staticProps[i].origin.FixNaN();
                     model.transform.localRotation = Quaternion.Euler(staticProps[i].angles).FixNaN();
+                    //model.transform.Rotate(Vector3.up, 180, Space.World);
                 }
                 totalItemsLoaded++;
                 onProgressChanged?.Invoke(PercentLoaded, currentMessage);

@@ -33,7 +33,7 @@ public class SourceModelLoader : MonoBehaviour
 
         SourceModel model = null;
         using (VPKParser vpk = new VPKParser(vpkPath))
-            model = SourceModel.GrabModel(vpk, modelPath);
+            model = SourceModel.GrabModel(null, vpk, modelPath);
         return model;
     }
 }
