@@ -217,10 +217,10 @@ namespace UnitySourceEngine
                     FaceMesh currentFace = new FaceMesh();
                     currentFace.textureFlag = currentTexFlags;
 
-                    currentFace.s = new Vector3(bspParser.texInfo[face.texinfo].textureVecs[0][0], bspParser.texInfo[face.texinfo].textureVecs[0][2], bspParser.texInfo[face.texinfo].textureVecs[0][1]);
-                    currentFace.t = new Vector3(bspParser.texInfo[face.texinfo].textureVecs[1][0], bspParser.texInfo[face.texinfo].textureVecs[1][2], bspParser.texInfo[face.texinfo].textureVecs[1][1]);
-                    currentFace.xOffset = bspParser.texInfo[face.texinfo].textureVecs[0][3];
-                    currentFace.yOffset = bspParser.texInfo[face.texinfo].textureVecs[1][3];
+                    //currentFace.s = new Vector3(bspParser.texInfo[face.texinfo].textureVecs[0][0], bspParser.texInfo[face.texinfo].textureVecs[0][2], bspParser.texInfo[face.texinfo].textureVecs[0][1]);
+                    //currentFace.t = new Vector3(bspParser.texInfo[face.texinfo].textureVecs[1][0], bspParser.texInfo[face.texinfo].textureVecs[1][2], bspParser.texInfo[face.texinfo].textureVecs[1][1]);
+                    //currentFace.xOffset = bspParser.texInfo[face.texinfo].textureVecs[0][3];
+                    //currentFace.yOffset = bspParser.texInfo[face.texinfo].textureVecs[1][3];
 
                     currentFace.faceName = textureLocation;
                     if (vpkParser != null && !excludeTextures)
@@ -245,8 +245,8 @@ namespace UnitySourceEngine
                 Vector3 point1 = bspParser.vertices[currentEdge[0]], point2 = bspParser.vertices[currentEdge[1]];
                 Vector3 planeNormal = bspParser.planes[face.planenum].normal;
 
-                point1 = new Vector3(point1.x, point1.z, point1.y);
-                point2 = new Vector3(point2.x, point2.z, point2.y);
+                point1 = new Vector3(point1.x, point1.y, point1.z);
+                point2 = new Vector3(point2.x, point2.y, point2.z);
 
                 if (bspParser.surfedges[face.firstedge + i] >= 0)
                 {
@@ -256,6 +256,7 @@ namespace UnitySourceEngine
                         normals.Add(planeNormal);
                     }
                     originalVertices.Add(point1);
+
                     if (surfaceVertices.IndexOf(point2) < 0)
                     {
                         surfaceVertices.Add(point2);
@@ -271,6 +272,7 @@ namespace UnitySourceEngine
                         normals.Add(planeNormal);
                     }
                     originalVertices.Add(point2);
+
                     if (surfaceVertices.IndexOf(point1) < 0)
                     {
                         surfaceVertices.Add(point1);
@@ -369,12 +371,12 @@ namespace UnitySourceEngine
                         int nextLineStart = (row + 1) * (power + 1);
 
                         triangleIndices.Add(currentLine + col);
-                        triangleIndices.Add(nextLineStart + col);
                         triangleIndices.Add(currentLine + col + 1);
+                        triangleIndices.Add(nextLineStart + col);
 
                         triangleIndices.Add(currentLine + col + 1);
-                        triangleIndices.Add(nextLineStart + col);
                         triangleIndices.Add(nextLineStart + col + 1);
+                        triangleIndices.Add(nextLineStart + col);
                     }
                 }
                 #endregion
@@ -388,9 +390,10 @@ namespace UnitySourceEngine
                     int secondIndex = surfaceVertices.IndexOf(originalVertices[secondOrigIndex]);
                     int thirdIndex = surfaceVertices.IndexOf(originalVertices[thirdOrigIndex]);
 
-                    triangleIndices.Add(firstIndex);
-                    triangleIndices.Add(secondIndex);
+                    //Attempted: first second third | first third second | third first second
                     triangleIndices.Add(thirdIndex);
+                    triangleIndices.Add(secondIndex);
+                    triangleIndices.Add(firstIndex);
                 }
             }
             #endregion
@@ -401,8 +404,8 @@ namespace UnitySourceEngine
 
             try
             {
-                s = new Vector3(bspParser.texInfo[face.texinfo].textureVecs[0][0], bspParser.texInfo[face.texinfo].textureVecs[0][2], bspParser.texInfo[face.texinfo].textureVecs[0][1]);
-                t = new Vector3(bspParser.texInfo[face.texinfo].textureVecs[1][0], bspParser.texInfo[face.texinfo].textureVecs[1][2], bspParser.texInfo[face.texinfo].textureVecs[1][1]);
+                s = new Vector3(bspParser.texInfo[face.texinfo].textureVecs[0][0], bspParser.texInfo[face.texinfo].textureVecs[0][1], bspParser.texInfo[face.texinfo].textureVecs[0][2]);
+                t = new Vector3(bspParser.texInfo[face.texinfo].textureVecs[1][0], bspParser.texInfo[face.texinfo].textureVecs[1][1], bspParser.texInfo[face.texinfo].textureVecs[1][2]);
                 xOffset = bspParser.texInfo[face.texinfo].textureVecs[0][3];
                 yOffset = bspParser.texInfo[face.texinfo].textureVecs[1][3];
             }
@@ -582,8 +585,8 @@ namespace UnitySourceEngine
                     GameObject model = staticProps[i].model.InstantiateGameObject();
                     model.transform.SetParent(gameObject.transform);
                     model.transform.localPosition = staticProps[i].origin.FixNaN();
-                    model.transform.localRotation = Quaternion.Euler(staticProps[i].angles).FixNaN();
-                    //model.transform.Rotate(Vector3.up, 180, Space.World);
+                    //model.transform.localRotation = Quaternion.Euler(staticProps[i].angles).FixNaN();
+                    model.transform.Rotate(staticProps[i].angles, Space.World);
                 }
                 totalItemsLoaded++;
                 onProgressChanged?.Invoke(PercentLoaded, currentMessage);
@@ -593,6 +596,9 @@ namespace UnitySourceEngine
 
             if (destroyMatAfterBuild)
                 UnityEngine.Object.Destroy(materialPrefab);
+
+            gameObject.transform.localScale = new Vector3(1, -1, 1);
+            gameObject.transform.rotation = Quaternion.Euler(-90, 0, 0);
 
             isBuilding = false;
             isBuilt = true;
@@ -614,8 +620,8 @@ namespace UnitySourceEngine
         public Vector3 relativeRotation;
 
         public MeshData meshData;
-        public Vector3 s, t;
-        public float xOffset, yOffset;
+        //public Vector3 s, t;
+        //public float xOffset, yOffset;
         public texflags textureFlag;
         public SourceTexture texture;
 

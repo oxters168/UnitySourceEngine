@@ -169,13 +169,13 @@ namespace UnitySourceEngine
                     vertex.m_BoneWeights.numbones = DataParser.ReadByte(innerStream); //24 + 1 = 25
 
                     float ex = DataParser.ReadFloat(innerStream); //25 + 4 = 29
-                    float zee = DataParser.ReadFloat(innerStream); //29 + 4 = 33
                     float why = DataParser.ReadFloat(innerStream); //33 + 4 = 37
+                    float zee = DataParser.ReadFloat(innerStream); //29 + 4 = 33
                     vertex.m_vecPosition = new Vector3(ex, why, zee);
 
                     ex = DataParser.ReadFloat(innerStream); //37 + 4 = 41
-                    zee = DataParser.ReadFloat(innerStream); //41 + 4 = 45
                     why = DataParser.ReadFloat(innerStream); //45 + 4 = 49
+                    zee = DataParser.ReadFloat(innerStream); //41 + 4 = 45
                     vertex.m_vecNormal = new Vector3(ex, why, zee);
 
                     ex = DataParser.ReadFloat(innerStream); //49 + 4 = 53

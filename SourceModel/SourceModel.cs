@@ -238,27 +238,30 @@ namespace UnitySourceEngine
                                     {
                                         var currentStrip = currentStripGroup.theVtxStrips[stripIndex];
 
-                                        for (int indexIndex = 0; indexIndex < currentStrip.indexCount; indexIndex += 3)
+                                        if (((StripHeaderFlags_t)currentStrip.flags & StripHeaderFlags_t.STRIP_IS_TRILIST) > 0)
                                         {
-                                            int vertexIndexA = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex]].originalMeshVertexIndex;
-                                            int vertexIndexB = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex + 1]].originalMeshVertexIndex;
-                                            int vertexIndexC = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex + 2]].originalMeshVertexIndex;
-
-                                            if (vertexIndexA < vertices.Length && vertexIndexB < vertices.Length && vertexIndexC < vertices.Length)
+                                            for (int indexIndex = 0; indexIndex < currentStrip.indexCount; indexIndex += 3)
                                             {
-                                                triangles.Add(vertexIndexA);
-                                                triangles.Add(vertexIndexB);
-                                                triangles.Add(vertexIndexC);
+                                                int vertexIndexA = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex]].originalMeshVertexIndex;
+                                                int vertexIndexB = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex + 2]].originalMeshVertexIndex;
+                                                int vertexIndexC = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex + 1]].originalMeshVertexIndex;
+
+                                                if (vertexIndexA < vertices.Length && vertexIndexB < vertices.Length && vertexIndexC < vertices.Length)
+                                                {
+                                                    triangles.Add(vertexIndexA);
+                                                    triangles.Add(vertexIndexB);
+                                                    triangles.Add(vertexIndexC);
+                                                }
                                             }
                                         }
                                     }
                                 }
                             //}
 
-                            Debug.Assert(triangles.Count % 3 == 0, "SourceModel: Triangles not a multiple of three for " + modelName);
-                            Debug.Assert(vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups.Length == 1, "SourceModel: Strip groups not one (" + vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups.Length  + ") for " + modelName);
-                            Debug.Assert(mdl.header1.includemodel_count <= 0, "SourceModel: Include model count greater than zero (" + mdl.header1.includemodel_count + ", " + mdl.header1.includemodel_index + ") for " + modelName);
-                            Debug.Assert(mdl.header1.numAllowedRootLods == 1, "SourceModel: Allowed root lods not one (" + mdl.header1.numAllowedRootLods + ", vtx#" + vtx.header.numLODs + ", vvd#" + vvd.header.numLODs + ", vvd2#" + vvd.header.numLODVertices + ", root" + mdl.header1.rootLod + ") for " + modelName);
+                            //Debug.Assert(triangles.Count % 3 == 0, "SourceModel: Triangles not a multiple of three for " + modelName);
+                            //Debug.Assert(vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups.Length == 1, "SourceModel: Strip groups not one (" + vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups.Length  + ") for " + modelName);
+                            //Debug.Assert(mdl.header1.includemodel_count <= 0, "SourceModel: Include model count greater than zero (" + mdl.header1.includemodel_count + ", " + mdl.header1.includemodel_index + ") for " + modelName);
+                            //Debug.Assert(mdl.header1.numAllowedRootLods == 1, "SourceModel: Allowed root lods not one (" + mdl.header1.numAllowedRootLods + ", vtx#" + vtx.header.numLODs + ", vvd#" + vvd.header.numLODs + ", vvd2#" + vvd.header.numLODVertices + ", root" + mdl.header1.rootLod + ") for " + modelName);
                             Debug.Assert(vvd.header.numFixups <= 0, "SourceModel: " + vvd.header.numFixups + " fixups found for " + modelName);
 
                             MeshData meshData = new MeshData();

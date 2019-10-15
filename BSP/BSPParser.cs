@@ -780,14 +780,17 @@ namespace UnitySourceEngine
                     if (gameLump.version >= 4)
                     {
                         float posX = DataParser.ReadFloat(stream);
-                        float posZ = DataParser.ReadFloat(stream);
                         float posY = DataParser.ReadFloat(stream);
+                        float posZ = DataParser.ReadFloat(stream);
                         staticProps.staticPropInfo[i].Origin = new Vector3(posX, posY, posZ); // origin
 
+                        //Working: pitch roll yaw | yaw roll pitch
+                        //Tested: pitch roll yaw | yaw roll pitch
+                        //Combinations: pitch roll yaw | pitch yaw roll | roll pitch yaw | roll yaw pitch | yaw pitch roll | yaw roll pitch
+                        float pitch = DataParser.ReadFloat(stream);
                         float roll = DataParser.ReadFloat(stream);
                         float yaw = DataParser.ReadFloat(stream);
-                        float pitch = DataParser.ReadFloat(stream);
-                        staticProps.staticPropInfo[i].Angles = new Vector3(pitch, yaw + 180, roll); // orientation
+                        staticProps.staticPropInfo[i].Angles = new Vector3(pitch, yaw, roll); // orientation
 
                         staticProps.staticPropInfo[i].PropType = DataParser.ReadUShort(stream); // index into model name dictionary
                         staticProps.staticPropInfo[i].FirstLeaf = DataParser.ReadUShort(stream); // index into leaf array
