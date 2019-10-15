@@ -217,11 +217,6 @@ namespace UnitySourceEngine
                     FaceMesh currentFace = new FaceMesh();
                     currentFace.textureFlag = currentTexFlags;
 
-                    //currentFace.s = new Vector3(bspParser.texInfo[face.texinfo].textureVecs[0][0], bspParser.texInfo[face.texinfo].textureVecs[0][2], bspParser.texInfo[face.texinfo].textureVecs[0][1]);
-                    //currentFace.t = new Vector3(bspParser.texInfo[face.texinfo].textureVecs[1][0], bspParser.texInfo[face.texinfo].textureVecs[1][2], bspParser.texInfo[face.texinfo].textureVecs[1][1]);
-                    //currentFace.xOffset = bspParser.texInfo[face.texinfo].textureVecs[0][3];
-                    //currentFace.yOffset = bspParser.texInfo[face.texinfo].textureVecs[1][3];
-
                     currentFace.faceName = textureLocation;
                     if (vpkParser != null && !excludeTextures)
                         currentFace.texture = SourceTexture.GrabTexture(bspParser, vpkParser, textureLocation);
@@ -473,7 +468,6 @@ namespace UnitySourceEngine
 
         private void ReadStaticProps(BSPParser bspParser, VPKParser vpkParser, CancellationToken cancelToken, Action<float, string> onProgressChanged = null)
         {
-            //staticProps = new SourceModel[bspParser.staticProps.staticPropInfo.Length];
             staticProps = new StaticPropData[bspParser.staticProps.staticPropInfo.Length];
             for (int i = 0; i < bspParser.staticProps.staticPropInfo.Length; i++)
             {
@@ -482,18 +476,7 @@ namespace UnitySourceEngine
 
                 var currentPropInfo = bspParser.staticProps.staticPropInfo[i];
 
-                //Debug.Log("Prop: Fixing Location");
-                if (i >= bspParser.staticProps.staticPropInfo.Length)
-                {
-                    Debug.Log("Could not find model");
-                    continue;
-                }
                 ushort propType = currentPropInfo.PropType;
-                if (propType >= bspParser.staticProps.staticPropDict.names.Length)
-                {
-                    Debug.Log("Could not find model");
-                    continue;
-                }
                 string modelFullPath = bspParser.staticProps.staticPropDict.names[propType];
 
                 string modelName = "", modelLocation = "";
@@ -501,7 +484,6 @@ namespace UnitySourceEngine
                 modelName = modelName.Substring(0, modelName.LastIndexOf("."));
                 modelLocation = modelFullPath.Substring(0, modelFullPath.LastIndexOf("/"));
 
-                //Debug.Log("Prop: Grabbing Model (" + modelLocation + "/" + modelName + ".mdl" + ")");
                 staticProps[i].model = SourceModel.GrabModel(bspParser, vpkParser, modelName, modelLocation);
 
                 staticProps[i].origin = currentPropInfo.Origin;

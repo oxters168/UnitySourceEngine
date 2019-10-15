@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.IO;
 
 namespace UnitySourceEngine
 {
@@ -110,19 +111,19 @@ namespace UnitySourceEngine
         {
             if (vpkParser != null)
             {
-                string modelsVPKDir = ((modelLocation.IndexOf("/") == 0) ? "/models" : "/models/");
+                string modelsVPKDir = ((modelLocation.IndexOf("/") == 0) ? "models" : "models/");
                 string mdlPath = modelsVPKDir + modelLocation + modelName + ".mdl";
                 string vvdPath = modelsVPKDir + modelLocation + modelName + ".vvd";
                 string vtxPath = modelsVPKDir + modelLocation + modelName + ".vtx";
 
-                if (vpkParser.FileExists(mdlPath))
+                if (bspParser.HasPakFile(mdlPath) || vpkParser.FileExists(mdlPath))
                 {
-                    if (vpkParser.FileExists(vvdPath))
+                    if (bspParser.HasPakFile(vvdPath) || vpkParser.FileExists(vvdPath))
                     {
-                        if (!vpkParser.FileExists(vtxPath))
+                        if (!bspParser.HasPakFile(vtxPath) && !vpkParser.FileExists(vtxPath))
                             vtxPath = modelsVPKDir + modelLocation + modelName + ".dx90.vtx";
 
-                        if (vpkParser.FileExists(vtxPath))
+                        if (bspParser.HasPakFile(vtxPath) || vpkParser.FileExists(vtxPath))
                         {
                             using (MDLParser mdl = new MDLParser())
                             using (VVDParser vvd = new VVDParser())
@@ -130,9 +131,29 @@ namespace UnitySourceEngine
                             {
                                 try
                                 {
-                                    vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
-                                    vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, origOffset); });
-                                    vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
+                                    if (bspParser.HasPakFile(mdlPath))
+                                    {
+                                        using (var stream = new MemoryStream(bspParser.GetPakFile(mdlPath)))
+                                            mdl.Parse(stream, 0);
+                                    }
+                                    else
+                                        vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
+
+                                    if (bspParser.HasPakFile(vvdPath))
+                                    {
+                                        using (var stream = new MemoryStream(bspParser.GetPakFile(vvdPath)))
+                                            vvd.Parse(stream, 0);
+                                    }
+                                    else
+                                        vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, origOffset); });
+
+                                    if (bspParser.HasPakFile(vtxPath))
+                                    {
+                                        using (var stream = new MemoryStream(bspParser.GetPakFile(vtxPath)))
+                                            vtx.Parse(stream, 0);
+                                    }
+                                    else
+                                        vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
 
                                     version = mdl.header1.version;
                                     id = mdl.header1.id;
