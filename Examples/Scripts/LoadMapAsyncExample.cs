@@ -12,8 +12,6 @@ public class LoadMapAsyncExample : MonoBehaviour
     public bool combineMeshesWithSameTextures = true;
     public bool excludeMapFaces = false;
     public bool excludeModels = false;
-    public bool excludeMapTextures = false;
-    public bool excludeModelTextures = false;
     public bool flatTextures = false;
     public int maxTextureSize = 2048;
 
@@ -30,7 +28,7 @@ public class LoadMapAsyncExample : MonoBehaviour
     }
     private void OnEnable()
     {
-        map = LoadMap(vpkPath, mapPath, combineMeshesWithSameTextures, excludeMapFaces, excludeModels, excludeMapTextures, excludeModelTextures, flatTextures, maxTextureSize);
+        map = LoadMap(vpkPath, mapPath, combineMeshesWithSameTextures, excludeMapFaces, excludeModels, flatTextures, maxTextureSize);
     }
     private void OnDisable()
     {
@@ -42,7 +40,7 @@ public class LoadMapAsyncExample : MonoBehaviour
         map = null;
     }
 
-    public BSPMap LoadMap(string vpkLoc, string mapLoc, bool combineMeshesWithSameTextures = true, bool excludeMapFaces = false, bool excludeModels = false, bool excludeMapTextures = false, bool excludeModelTextures = false, bool flatTextures = false, int maxTextureSize = 2048)
+    public BSPMap LoadMap(string vpkLoc, string mapLoc, bool combineMeshesWithSameTextures = true, bool excludeMapFaces = false, bool excludeModels = false, bool flatTextures = false, int maxTextureSize = 2048)
     {
         BSPMap.vpkLoc = vpkLoc;
         BSPMap map = new BSPMap(mapLoc);
@@ -50,8 +48,6 @@ public class LoadMapAsyncExample : MonoBehaviour
         BSPMap.combineMeshesWithSameTextures = combineMeshesWithSameTextures;
         BSPMap.excludeMapFaces = excludeMapFaces;
         BSPMap.excludeModels = excludeModels;
-        BSPMap.excludeTextures = excludeMapTextures;
-        SourceModel.excludeTextures = excludeModelTextures;
         SourceTexture.averageTextures = flatTextures;
         SourceTexture.maxTextureSize = maxTextureSize;
 

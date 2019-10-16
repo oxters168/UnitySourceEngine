@@ -6,7 +6,6 @@ public class SourceModelLoader : MonoBehaviour
     public string vpkPath = @"C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\csgo";
     public string modelPath = "models/weapons/v_rif_m4a1.mdl";
     [Space(10)]
-    public bool excludeTextures = false;
     public bool flatTextures = false;
     public int maxTextureSize = 2048;
 
@@ -14,7 +13,7 @@ public class SourceModelLoader : MonoBehaviour
 
     private void Start()
     {
-        model = LoadModel(vpkPath, modelPath, excludeTextures, flatTextures, maxTextureSize);
+        model = LoadModel(vpkPath, modelPath, flatTextures, maxTextureSize);
         if (model != null)
             model.InstantiateGameObject().transform.SetParent(transform, false);
     }
@@ -25,9 +24,8 @@ public class SourceModelLoader : MonoBehaviour
         model = null;
     }
 
-    public SourceModel LoadModel(string vpkLoc, string modelLoc, bool excludeTextures = false, bool flatTextures = false, int maxTextureSize = 2048)
+    public SourceModel LoadModel(string vpkLoc, string modelLoc, bool flatTextures = false, int maxTextureSize = 2048)
     {
-        SourceModel.excludeTextures = excludeTextures;
         SourceTexture.averageTextures = flatTextures;
         SourceTexture.maxTextureSize = maxTextureSize;
 

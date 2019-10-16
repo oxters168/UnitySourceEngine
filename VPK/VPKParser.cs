@@ -144,7 +144,11 @@ namespace UnitySourceEngine
                             {
                                 if (extension.ToLower().Equals("vmt"))
                                 {
-                                    VMTData.ReadAndCache(currentStream, currentStream.Position + dirEntry.PreloadBytes, directory + "/" + fileName + "." + extension);
+                                    string vmtPath = directory + "/" + fileName + "." + extension;
+                                    byte[] vmtByteData = new byte[dirEntry.PreloadBytes];
+                                    currentStream.Read(vmtByteData, 0, vmtByteData.Length);
+                                    VMTData.GrabVMT(vmtByteData, vmtPath);
+                                    //VMTData.ReadAndCache(currentStream, currentStream.Position + dirEntry.PreloadBytes, directory + "/" + fileName + "." + extension);
                                 }
                             }
                             currentStream.Position = currentStreamPosition + dirEntry.PreloadBytes;

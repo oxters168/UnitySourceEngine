@@ -6,10 +6,10 @@ namespace UnitySourceEngine
 {
     public class SourceModel
     {
-        public static Material modelMaterial;
+        //public static Material modelMaterial;
         private static Dictionary<string, SourceModel> loadedModels = new Dictionary<string, SourceModel>();
         private static GameObject staticPropLibrary;
-        public static bool excludeTextures;
+        //public static bool excludeTextures;
 
         public string modelName { get; private set; }
         public string modelLocation { get; private set; }
@@ -20,8 +20,9 @@ namespace UnitySourceEngine
 
         private GameObject modelPrefab;
         private List<FaceMesh> faces = new List<FaceMesh>();
-        private SourceTexture[] modelTextures;
-        private List<Material> materialsCreated = new List<Material>();
+        //private SourceTexture[] modelTextures;
+        //private List<VMTData> materials = new List<VMTData>();
+        //private List<Material> materialsCreated = new List<Material>();
 
         private SourceModel(string name, string location)
         {
@@ -43,21 +44,21 @@ namespace UnitySourceEngine
             if (loadedModels != null && loadedModels.ContainsKey(modelKey))
                 loadedModels.Remove(modelKey);
 
-            if (materialsCreated != null)
-                foreach (Material mat in materialsCreated)
-                    if (mat != null)
-                        Object.Destroy(mat);
-            materialsCreated = new List<Material>();
+            //if (materialsCreated != null)
+            //    foreach (Material mat in materialsCreated)
+            //        if (mat != null)
+            //            Object.Destroy(mat);
+            //materialsCreated = new List<Material>();
 
             if (faces != null)
                 foreach (FaceMesh face in faces)
                     face?.Dispose();
             faces = null;
 
-            if (modelTextures != null)
-                foreach (SourceTexture texture in modelTextures)
-                    texture?.Dispose();
-            modelTextures = null;
+            //if (modelTextures != null)
+            //    foreach (SourceTexture texture in modelTextures)
+            //        texture?.Dispose();
+            //modelTextures = null;
 
             if (modelPrefab != null)
                 Object.Destroy(modelPrefab);
@@ -159,10 +160,7 @@ namespace UnitySourceEngine
                                     id = mdl.header1.id;
 
                                     if (mdl.bodyParts != null)
-                                    {
-                                        GetTextures(mdl, bspParser, vpkParser);
                                         ReadFaceMeshes(mdl, vvd, vtx, bspParser, vpkParser);
-                                    }
                                     else
                                         Debug.LogError("SourceModel: Could not find body parts of " + modelKey);
                                 }
@@ -183,33 +181,6 @@ namespace UnitySourceEngine
             }
             else
                 Debug.LogError("SourceModel: VPK parser is null");
-        }
-        private void GetTextures(MDLParser mdl, BSPParser bspParser, VPKParser vpkParser)
-        {
-            if (mdl != null && vpkParser != null)
-            {
-                try
-                {
-                    #region Grabbing Textures
-                    modelTextures = new SourceTexture[mdl.textures.Length];
-                    for (int i = 0; i < modelTextures.Length; i++)
-                    {
-                        string texturePath = "", textureName = "";
-                        if (mdl.texturePaths != null && mdl.texturePaths.Length > 0 && mdl.texturePaths[0] != null)
-                            texturePath = mdl.texturePaths[0].Replace("\\", "/").ToLower();
-                        if (mdl.textures[i] != null)
-                            textureName = mdl.textures[i].name.Replace("\\", "/").ToLower();
-                        if (textureName.IndexOf(texturePath) > -1)
-                            texturePath = "";
-                        modelTextures[i] = SourceTexture.GrabTexture(bspParser, vpkParser, texturePath + textureName);
-                    }
-                    #endregion
-                }
-                catch (System.Exception e)
-                {
-                    Debug.LogError("SourceModel: " + e);
-                }
-            }
         }
         private void ReadFaceMeshes(MDLParser mdl, VVDParser vvd, VTXParser vtx, BSPParser bspParser, VPKParser vpkParser)
         {
@@ -292,13 +263,19 @@ namespace UnitySourceEngine
                             meshData.uv = uv;
 
                             currentFace.meshData = meshData;
-                            string textureLocation = "";
-                            if (modelTextures != null && textureIndex < modelTextures.Length) //Should not have this line
-                                textureLocation = modelTextures[textureIndex]?.location;
+
+                            string texturePath = mdl.texturePaths[0].Replace("\\", "/").ToLower();
+                            string textureName = mdl.textures[textureIndex].name.Replace("\\", "/").ToLower();
+                            if (textureName.IndexOf(texturePath) > -1)
+                                texturePath = "";
+                            string textureLocation = texturePath + textureName;
+                            //if (modelTextures != null && textureIndex < modelTextures.Length) //Should not have this line
+                            //    textureLocation = modelTextures[textureIndex]?.location;
 
                             currentFace.faceName = textureLocation;
-                            if (!excludeTextures)
-                                currentFace.texture = SourceTexture.GrabTexture(bspParser, vpkParser, textureLocation);
+                            currentFace.material = VMTData.GrabVMT(bspParser, vpkParser, textureLocation);
+                            //if (!excludeTextures)
+                            //    currentFace.texture = SourceTexture.GrabTexture(bspParser, vpkParser, textureLocation);
                             faces.Add(currentFace);
 
                             textureIndex++;
@@ -316,14 +293,14 @@ namespace UnitySourceEngine
             modelPrefab.transform.parent = staticPropLibrary.transform;
             modelPrefab.SetActive(false);
 
-            Material materialPrefab = modelMaterial;
-            bool destroyMatAfterBuild = modelMaterial == null;
-            if (destroyMatAfterBuild)
-                materialPrefab = new Material(Shader.Find("Legacy Shaders/Diffuse"));
+            //Material materialPrefab = modelMaterial;
+            //bool destroyMatAfterBuild = modelMaterial == null;
+            //if (destroyMatAfterBuild)
+            //    materialPrefab = new Material(Shader.Find("Legacy Shaders/Diffuse"));
             if (faces != null)
                 foreach (FaceMesh faceMesh in faces)
                 {
-                    GameObject meshRepresentation = new GameObject("ModelPart");
+                    GameObject meshRepresentation = new GameObject(faceMesh.faceName);
                     meshRepresentation.transform.parent = modelPrefab.transform;
 
                     Mesh mesh = faceMesh.meshData.GetMesh();
@@ -331,14 +308,13 @@ namespace UnitySourceEngine
                     MeshFilter mesher = meshRepresentation.AddComponent<MeshFilter>();
                     mesher.sharedMesh = mesh;
 
-                    Material meshMaterial = new Material(materialPrefab);
-                    materialsCreated.Add(meshMaterial);
-                    meshMaterial.mainTexture = faceMesh.texture?.GetTexture();
-                    meshRepresentation.AddComponent<MeshRenderer>().material = meshMaterial;
+                    //materialsCreated.Add(meshMaterial);
+                    //meshMaterial.mainTexture = faceMesh.texture?.GetTexture();
+                    meshRepresentation.AddComponent<MeshRenderer>().material = faceMesh.material?.GetMaterial();
                     meshRepresentation.AddComponent<MeshCollider>();
                 }
-            if (destroyMatAfterBuild)
-                Object.Destroy(materialPrefab);
+            //if (destroyMatAfterBuild)
+            //    Object.Destroy(materialPrefab);
         }
         public GameObject InstantiateGameObject()
         {

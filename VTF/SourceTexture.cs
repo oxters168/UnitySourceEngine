@@ -30,7 +30,8 @@ namespace UnitySourceEngine
             if (!string.IsNullOrEmpty(location) && loadedTextures.ContainsKey(location))
                 loadedTextures.Remove(location);
             pixels = null;
-            UnityEngine.Object.Destroy(texture);
+            if (texture != null)
+                UnityEngine.Object.Destroy(texture);
             texture = null;
         }
         public static void ClearCache()
@@ -45,7 +46,7 @@ namespace UnitySourceEngine
         {
             if (texture == null)
             {
-                texture = new Texture2D(width, height);
+                texture = new Texture2D(width, height, TextureFormat.RGB24, false);
                 texture.SetPixels(pixels);
                 texture.Apply();
             }
@@ -146,46 +147,12 @@ namespace UnitySourceEngine
         {
             string fixedLocation = rawPath.Replace("\\", "/").ToLower();
 
-            string vmtProxy = VMTData.GrabVMT(bspParser, vpkParser, rawPath)?.vtfPath;
-
-            if (!string.IsNullOrEmpty(vmtProxy))
-                fixedLocation = vmtProxy;
-
-            if ((bspParser == null || !bspParser.HasPakFile(fixedLocation)) && (vpkParser == null || !vpkParser.FileExists(fixedLocation)))
+            if (!Path.GetExtension(fixedLocation).Equals(".vtf") && (bspParser == null || !bspParser.HasPakFile(fixedLocation)) && (vpkParser == null || !vpkParser.FileExists(fixedLocation)))
                 fixedLocation += ".vtf";
             if ((bspParser == null || !bspParser.HasPakFile(fixedLocation)) && (vpkParser == null || !vpkParser.FileExists(fixedLocation)))
                 fixedLocation = Path.Combine("materials", fixedLocation).Replace("\\", "/");
 
             return fixedLocation;
-        }
-
-        /// <summary>
-        /// Removes "maps/" from the path and underscore
-        /// </summary>
-        /// <param name="original">The path of the texture</param>
-        /// <returns>A non misleading path</returns>
-        public static string RemoveMisleadingPath(string original)
-        {
-            string goodPath = original.Replace("\\", "/").ToLower();
-            if (goodPath.IndexOf("maps/") > -1)
-            {
-                goodPath = goodPath.Substring(goodPath.IndexOf("maps/") + ("maps/").Length);
-                goodPath = goodPath.Substring(goodPath.IndexOf("/") + 1);
-                if (goodPath.IndexOf("_-") > -1)
-                {
-                    string underscoreDashPhenomenon = goodPath.Substring(goodPath.LastIndexOf("_-") + 2);
-                    goodPath = goodPath.Substring(0, goodPath.LastIndexOf("_-"));
-                    if (underscoreDashPhenomenon.IndexOf("_") < 0)
-                    {
-                        if (goodPath.IndexOf("_") > -1)
-                            goodPath = goodPath.Substring(0, goodPath.LastIndexOf("_"));
-                        if (goodPath.IndexOf("_") > -1)
-                            goodPath = goodPath.Substring(0, goodPath.LastIndexOf("_"));
-                    }
-                }
-            }
-
-            return goodPath;
         }
 
         public static Color[] DecreaseTextureSize(Color[] pixels, int origWidth, int origHeight, int maxSize, out int decreasedWidth, out int decreasedHeight)
