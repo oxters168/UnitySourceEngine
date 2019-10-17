@@ -21,6 +21,8 @@ namespace UnitySourceEngine
         private object[] lumpData;
         public dgamelumpheader_t gameLumpHeader { get; private set; }
 
+        private Stream bspStream;
+
         #region Geometry
         public Vector3[] vertices;
         public dedge_t[] edges;
@@ -71,6 +73,8 @@ namespace UnitySourceEngine
         {
             if (disposing)
             {
+                bspStream?.Dispose();
+
                 lumps = null;
                 lumpData = null;
                 vertices = null;
@@ -145,57 +149,56 @@ namespace UnitySourceEngine
 
         public void ParseData(CancellationToken cancelToken)
         {
-            using (FileStream stream = new FileStream(fileLocation, FileMode.Open, FileAccess.Read))
-            {
-                identifier = DataParser.ReadInt(stream);
-                version = DataParser.ReadInt(stream);
-                if (!cancelToken.IsCancellationRequested)
-                    LoadLumps(stream, cancelToken);
-                if (!cancelToken.IsCancellationRequested)
-                    LoadGameLumps(stream, cancelToken);
-                mapRevision = DataParser.ReadInt(stream);
+            bspStream = new FileStream(fileLocation, FileMode.Open, FileAccess.Read);
 
-                if (!cancelToken.IsCancellationRequested)
-                    vertices = GetVertices(stream, cancelToken);
+            identifier = DataParser.ReadInt(bspStream);
+            version = DataParser.ReadInt(bspStream);
+            if (!cancelToken.IsCancellationRequested)
+                LoadLumps(bspStream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                LoadGameLumps(bspStream, cancelToken);
+            mapRevision = DataParser.ReadInt(bspStream);
 
-                if (!cancelToken.IsCancellationRequested)
-                    edges = GetEdges(stream, cancelToken);
-                if (!cancelToken.IsCancellationRequested)
-                    faces = GetFaces(stream, cancelToken);
-                if (!cancelToken.IsCancellationRequested)
-                    surfedges = GetSurfedges(stream, cancelToken);
-                if (!cancelToken.IsCancellationRequested)
-                    planes = GetPlanes(stream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                vertices = GetVertices(bspStream, cancelToken);
 
-                if (!cancelToken.IsCancellationRequested)
-                    leaffaces = GetLeafFaces(stream, cancelToken);
-                if (!cancelToken.IsCancellationRequested)
-                    nodes = GetNodes(stream, cancelToken);
-                if (!cancelToken.IsCancellationRequested)
-                    leaves = GetLeaves(stream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                edges = GetEdges(bspStream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                faces = GetFaces(bspStream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                surfedges = GetSurfedges(bspStream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                planes = GetPlanes(bspStream, cancelToken);
 
-                if (!cancelToken.IsCancellationRequested)
-                    dispInfo = GetDispInfo(stream, cancelToken);
-                if (!cancelToken.IsCancellationRequested)
-                    dispVerts = GetDispVerts(stream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                leaffaces = GetLeafFaces(bspStream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                nodes = GetNodes(bspStream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                leaves = GetLeaves(bspStream, cancelToken);
 
-                if (!cancelToken.IsCancellationRequested)
-                    texInfo = GetTextureInfo(stream, cancelToken);
-                if (!cancelToken.IsCancellationRequested)
-                    texData = GetTextureData(stream, cancelToken);
-                if (!cancelToken.IsCancellationRequested)
-                    texStringTable = GetTextureStringTable(stream, cancelToken);
-                if (!cancelToken.IsCancellationRequested)
-                    textureStringData = GetTextureStringData(stream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                dispInfo = GetDispInfo(bspStream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                dispVerts = GetDispVerts(bspStream, cancelToken);
 
-                if (!cancelToken.IsCancellationRequested)
-                    staticProps = GetStaticProps(stream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                texInfo = GetTextureInfo(bspStream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                texData = GetTextureData(bspStream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                texStringTable = GetTextureStringTable(bspStream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                textureStringData = GetTextureStringData(bspStream, cancelToken);
 
-                if (!cancelToken.IsCancellationRequested)
-                    pakfileDirRecord = ReadPakfileEndOfCentralDirRecord(stream, cancelToken);
-                if (!cancelToken.IsCancellationRequested)
-                    pakfiles = ReadPakFileHeaders(stream, cancelToken);
-            }
+            if (!cancelToken.IsCancellationRequested)
+                staticProps = GetStaticProps(bspStream, cancelToken);
+
+            if (!cancelToken.IsCancellationRequested)
+                pakfileDirRecord = ReadPakfileEndOfCentralDirRecord(bspStream, cancelToken);
+            if (!cancelToken.IsCancellationRequested)
+                pakfiles = ReadPakFileHeaders(bspStream, cancelToken);
         }
 
         public dnode_t GetNodeContainingLeaf(ushort leafIndex)
@@ -909,7 +912,7 @@ namespace UnitySourceEngine
                 byte[] commentBytes = new byte[dirRecord.commentLength];
                 stream.Read(commentBytes, 0, commentBytes.Length);
                 string comment = System.Text.Encoding.ASCII.GetString(commentBytes);
-                Debug.Log("Pakfile Comment: " + comment);
+                //Debug.Log("Pakfile Comment: " + comment);
             }
             else
                 Debug.LogWarning("BSPParser: Could not find pakfile");
@@ -956,7 +959,7 @@ namespace UnitySourceEngine
 
                 Debug.Assert(zipFile.signature == GetPKID(1, 2), "BSPParser: Pakfile has incorrect signature expected PK12");
                 Debug.Assert(zipFile.compressionMethod == 0, "BSPParser: Pakfile unknown compression method");
-                Debug.Log("Pakfile" + i + ": " + fileName + " " + fileComment);
+                //Debug.Log("Pakfile" + i + ": " + fileName + " " + fileComment);
 
                 zipFiles[fileName] = zipFile;
             }
@@ -981,55 +984,53 @@ namespace UnitySourceEngine
                 if (!fileHeader.Equals(default(ZIP_FileHeader)))
                 {
                     lump_t lump = lumps[40];
-                    using (FileStream stream = new FileStream(fileLocation, FileMode.Open, FileAccess.Read))
+
+                    #region Through DotNetZip
+                    /*stream.Position = lump.fileofs;
+                    using (var copiedStream = new MemoryStream())
                     {
-                        #region Through DotNetZip
-                        /*stream.Position = lump.fileofs;
-                        using (var copiedStream = new MemoryStream())
+                        stream.CopyTo(copiedStream);
+                        copiedStream.Position = 0;
+                        using (var zipFile = Ionic.Zip.ZipFile.Read(copiedStream))
                         {
-                            stream.CopyTo(copiedStream);
-                            copiedStream.Position = 0;
-                            using (var zipFile = Ionic.Zip.ZipFile.Read(copiedStream))
+                            var zipEntry = zipFile[name];
+                            using (var extractionStream = new MemoryStream())
                             {
-                                var zipEntry = zipFile[name];
-                                using (var extractionStream = new MemoryStream())
-                                {
-                                    zipEntry.Extract(extractionStream);
-                                    extractionStream.Position = 0;
-                                    pakfile = extractionStream.ToArray();
-                                }
+                                zipEntry.Extract(extractionStream);
+                                extractionStream.Position = 0;
+                                pakfile = extractionStream.ToArray();
                             }
-                        }*/
-                        #endregion
+                        }
+                    }*/
+                    #endregion
 
-                        #region Manual Extraction (As long as there is no compression happening i.e. compressionMethod = 0)
-                        stream.Position = lump.fileofs + fileHeader.relativeOffsetOfLocalHeader;
+                    #region Manual Extraction (As long as there is no compression happening i.e. compressionMethod = 0)
+                    bspStream.Position = lump.fileofs + fileHeader.relativeOffsetOfLocalHeader;
 
-                        ZIP_LocalFileHeader localFileHeader = new ZIP_LocalFileHeader();
-                        localFileHeader.signature = DataParser.ReadUInt(stream);
-                        localFileHeader.versionNeededToExtract = DataParser.ReadUShort(stream);
-                        localFileHeader.flags = DataParser.ReadUShort(stream);
-                        localFileHeader.compressionMethod = DataParser.ReadUShort(stream);
-                        localFileHeader.lastModifiedTime = DataParser.ReadUShort(stream);
-                        localFileHeader.lastModifiedDate = DataParser.ReadUShort(stream);
-                        localFileHeader.crc32 = DataParser.ReadUInt(stream);
-                        localFileHeader.compressedSize = DataParser.ReadUInt(stream);
-                        localFileHeader.uncompressedSize = DataParser.ReadUInt(stream);
-                        localFileHeader.fileNameLength = DataParser.ReadUShort(stream);
-                        localFileHeader.extraFieldLength = DataParser.ReadUShort(stream);
+                    ZIP_LocalFileHeader localFileHeader = new ZIP_LocalFileHeader();
+                    localFileHeader.signature = DataParser.ReadUInt(bspStream);
+                    localFileHeader.versionNeededToExtract = DataParser.ReadUShort(bspStream);
+                    localFileHeader.flags = DataParser.ReadUShort(bspStream);
+                    localFileHeader.compressionMethod = DataParser.ReadUShort(bspStream);
+                    localFileHeader.lastModifiedTime = DataParser.ReadUShort(bspStream);
+                    localFileHeader.lastModifiedDate = DataParser.ReadUShort(bspStream);
+                    localFileHeader.crc32 = DataParser.ReadUInt(bspStream);
+                    localFileHeader.compressedSize = DataParser.ReadUInt(bspStream);
+                    localFileHeader.uncompressedSize = DataParser.ReadUInt(bspStream);
+                    localFileHeader.fileNameLength = DataParser.ReadUShort(bspStream);
+                    localFileHeader.extraFieldLength = DataParser.ReadUShort(bspStream);
 
-                        Debug.Assert(localFileHeader.signature == GetPKID(3, 4), "BSPParser: Pakfile local header has incorrect signature expected PK34");
+                    Debug.Assert(localFileHeader.signature == GetPKID(3, 4), "BSPParser: Pakfile local header has incorrect signature expected PK34");
 
-                        byte[] fileNameBytes = new byte[localFileHeader.fileNameLength];
-                        stream.Read(fileNameBytes, 0, fileNameBytes.Length);
-                        string fileName = System.Text.Encoding.ASCII.GetString(fileNameBytes);
+                    byte[] fileNameBytes = new byte[localFileHeader.fileNameLength];
+                    bspStream.Read(fileNameBytes, 0, fileNameBytes.Length);
+                    string fileName = System.Text.Encoding.ASCII.GetString(fileNameBytes);
 
-                        stream.Position += localFileHeader.extraFieldLength;
+                    bspStream.Position += localFileHeader.extraFieldLength;
 
-                        pakfile = new byte[localFileHeader.uncompressedSize];
-                        stream.Read(pakfile, 0, pakfile.Length);
-                        #endregion
-                    }
+                    pakfile = new byte[localFileHeader.uncompressedSize];
+                    bspStream.Read(pakfile, 0, pakfile.Length);
+                    #endregion
                 }
             }
             catch(Exception e)

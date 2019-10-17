@@ -219,8 +219,6 @@ namespace UnitySourceEngine
 
                     currentFace.faceName = textureLocation;
                     currentFace.material = VMTData.GrabVMT(bspParser, vpkParser, textureLocation);
-                    //if (vpkParser != null && !excludeTextures)
-                    //    currentFace.texture = SourceTexture.GrabTexture(bspParser, vpkParser, textureLocation);
                     currentFace.meshData = MakeFace(bspParser, face);
                     AddFaceMesh(currentFace, combineMeshesWithSameTextures);
                 }
@@ -291,7 +289,6 @@ namespace UnitySourceEngine
 
                 #region Setting Orientation
                 Vector3 dispStartingVertex = disp.startPosition;
-                //dispStartingVertex = new Vector3(dispStartingVertex.x, dispStartingVertex.z, dispStartingVertex.y);
                 if (Vector3.Distance(dispStartingVertex, topCorner) < 0.01f)
                 {
                     Vector3 tempCorner = startingPosition;
@@ -339,7 +336,6 @@ namespace UnitySourceEngine
                         Vector3 pointA = leftPoint + (pointDirection * pointSideSegmentationDistance * point);
 
                         Vector3 dispDirectionA = bspParser.dispVerts[disp.DispVertStart + orderNum].vec;
-                        //dispDirectionA = new Vector3(dispDirectionA.x, dispDirectionA.z, dispDirectionA.y);
                         dispVertices.Add(pointA + (dispDirectionA * bspParser.dispVerts[disp.DispVertStart + orderNum].dist));
                         orderNum++;
                     }
@@ -386,7 +382,6 @@ namespace UnitySourceEngine
                     int secondIndex = surfaceVertices.IndexOf(originalVertices[secondOrigIndex]);
                     int thirdIndex = surfaceVertices.IndexOf(originalVertices[thirdOrigIndex]);
 
-                    //Attempted: first second third | first third second | third first second
                     triangleIndices.Add(thirdIndex);
                     triangleIndices.Add(secondIndex);
                     triangleIndices.Add(firstIndex);
@@ -508,11 +503,6 @@ namespace UnitySourceEngine
             int staticPropsCount = staticProps != null ? staticProps.Length : 0;
             totalItemsToLoad = allFaces.Count + staticPropsCount;
 
-            //int breathingInterval = 25;
-            //Material materialPrefab = mapMaterial;
-            //bool destroyMatAfterBuild = mapMaterial == null;
-            //if (destroyMatAfterBuild)
-            //    materialPrefab = new Material(Shader.Find("Legacy Shaders/Diffuse"));
             foreach (FaceMesh face in allFaces)
             {
                 string faceName = face.faceName;
@@ -523,37 +513,8 @@ namespace UnitySourceEngine
                 faceGO.transform.position = face.relativePosition;
                 faceGO.transform.rotation = Quaternion.Euler(face.relativeRotation);
                 faceGO.AddComponent<MeshFilter>().mesh = face.meshData.GetMesh();
-
-                #region Set Material of GameObject
-                //Texture2D faceTexture = null;// face.texture?.GetTexture();
-
                 faceGO.AddComponent<MeshRenderer>().material = face.material?.GetMaterial();
-                //if (faceTexture == null)
-                //{
-                //    if (noTexture == null)
-                //    {
-                //        noTexture = new Material(materialPrefab);
-                //    }
-                //    faceMaterial = noTexture;
-                //}
-                /*else if (materialsCreated.ContainsKey(face.texture))
-                {
-                    faceMaterial = materialsCreated[face.texture];
-                }
-                else
-                {
-                    faceMaterial = new Material(materialPrefab);
-                    materialsCreated[face.texture] = faceMaterial;
-
-                    faceMaterial.mainTextureScale = new Vector2(1, 1);
-                    faceMaterial.mainTextureOffset = new Vector2(0, 0);
-                    faceMaterial.mainTexture = faceTexture;
-                    faceTexture = null;
-                }
-                faceGO.AddComponent<MeshRenderer>().material = faceMaterial;*/
                 faceGO = null;
-                //faceMaterial = null;
-                #endregion
 
                 totalItemsLoaded++;
                 onProgressChanged?.Invoke(PercentLoaded, currentMessage);
@@ -562,23 +523,19 @@ namespace UnitySourceEngine
             }
             for (int i = 0; i < staticPropsCount; i++)
             {
-                //SourceModel currentStaticProp = staticProps[i].model;
                 if (staticProps[i].model != null)
                 {
                     GameObject model = staticProps[i].model.InstantiateGameObject();
                     model.transform.SetParent(gameObject.transform);
                     model.transform.localPosition = staticProps[i].origin.FixNaN();
-                    //model.transform.localRotation = Quaternion.Euler(staticProps[i].angles).FixNaN();
-                    model.transform.Rotate(staticProps[i].angles, Space.World);
+                    model.transform.localRotation = Quaternion.Euler(staticProps[i].angles).FixNaN();
+                    //model.transform.Rotate(staticProps[i].angles, Space.World);
                 }
                 totalItemsLoaded++;
                 onProgressChanged?.Invoke(PercentLoaded, currentMessage);
                 //if (totalItemsLoaded % breathingInterval == 0)
                 //    yield return null;
             }
-
-            //if (destroyMatAfterBuild)
-            //    UnityEngine.Object.Destroy(materialPrefab);
 
             gameObject.transform.localScale = new Vector3(1, -1, 1);
             gameObject.transform.rotation = Quaternion.Euler(-90, 0, 0);
