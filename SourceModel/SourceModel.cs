@@ -203,7 +203,65 @@ namespace UnitySourceEngine
                             FaceMesh currentFace = new FaceMesh();
 
                             int verticesStartIndex = mdl.bodyParts[bodyPartIndex].models[modelIndex].theMeshes[meshIndex].vertexIndexStart;
-                            int vertexCount = mdl.bodyParts[bodyPartIndex].models[modelIndex].theMeshes[meshIndex].vertexData.lodVertexCount[rootLodIndex];
+                            int vertexCount = 0;
+                            //int vertexCount = mdl.bodyParts[bodyPartIndex].models[modelIndex].theMeshes[meshIndex].vertexCount;
+                            //int vertexCount = mdl.bodyParts[bodyPartIndex].models[modelIndex].theMeshes[meshIndex].vertexData.lodVertexCount[rootLodIndex];
+                            //int vertexCount = 0;
+                            //for (int i = 0; i <= rootLodIndex; i++)
+                            //    vertexCount += mdl.bodyParts[bodyPartIndex].models[modelIndex].theMeshes[meshIndex].vertexData.lodVertexCount[i];
+
+                            int trianglesCount = 0;
+                            for (int stripGroupIndex = 0; stripGroupIndex < vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].stripGroupCount; stripGroupIndex++)
+                            {
+                                var currentStripGroup = vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups[stripGroupIndex];
+                                for (int stripIndex = 0; stripIndex < currentStripGroup.theVtxStrips.Length; stripIndex++)
+                                {
+                                    var currentStrip = currentStripGroup.theVtxStrips[stripIndex];
+                                    trianglesCount += currentStrip.indexCount;
+                                }
+                            }
+
+                            //List<int> triangles = new List<int>();
+                            int[] triangles = new int[trianglesCount];
+                            int trianglesIndex = 0;
+                            //for (int countUpLodIndex = 0; countUpLodIndex <= rootLodIndex; countUpLodIndex++)
+                            //{
+                            for (int stripGroupIndex = 0; stripGroupIndex < vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].stripGroupCount; stripGroupIndex++)
+                            {
+                                //var currentStripGroup = vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups[0];
+                                var currentStripGroup = vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups[stripGroupIndex];
+                                //int trianglesCount = currentStripGroup.theVtxIndices.Length;
+                                //int[] triangles = new int[trianglesCount];
+
+                                for (int stripIndex = 0; stripIndex < currentStripGroup.theVtxStrips.Length; stripIndex++)
+                                {
+                                    var currentStrip = currentStripGroup.theVtxStrips[stripIndex];
+
+                                    //if (((StripHeaderFlags_t)currentStrip.flags & StripHeaderFlags_t.STRIP_IS_TRILIST) > 0)
+                                    //{
+                                    for (int indexIndex = 0; indexIndex < currentStrip.indexCount; indexIndex += 3)
+                                    {
+                                        int vertexIndexA = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex]].originalMeshVertexIndex;
+                                        int vertexIndexB = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex + 2]].originalMeshVertexIndex;
+                                        int vertexIndexC = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex + 1]].originalMeshVertexIndex;
+
+                                        vertexCount = Mathf.Max(vertexCount, vertexIndexA, vertexIndexB, vertexIndexC);
+                                        //if (vertexIndexA < vertices.Length && vertexIndexB < vertices.Length && vertexIndexC < vertices.Length)
+                                        //{
+                                        triangles[trianglesIndex++] = vertexIndexA;
+                                        triangles[trianglesIndex++] = vertexIndexB;
+                                        triangles[trianglesIndex++] = vertexIndexC;
+                                        //triangles.Add(vertexIndexA);
+                                        //triangles.Add(vertexIndexB);
+                                        //triangles.Add(vertexIndexC);
+                                        //}
+                                    }
+                                    //}
+                                }
+                            }
+                            //}
+
+                            vertexCount += 1;
 
                             Vector3[] vertices = new Vector3[vertexCount];
                             Vector3[] normals = new Vector3[vertexCount];
@@ -211,44 +269,10 @@ namespace UnitySourceEngine
 
                             for (int verticesIndex = 0; verticesIndex < vertices.Length; verticesIndex++)
                             {
-                                vertices[verticesIndex] = vvd.vertices[verticesStartIndex + verticesIndex].m_vecPosition;
-                                normals[verticesIndex] = vvd.vertices[verticesStartIndex + verticesIndex].m_vecNormal;
-                                uv[verticesIndex] = vvd.vertices[verticesStartIndex + verticesIndex].m_vecTexCoord;
+                                vertices[verticesIndex] = vvd.vertices[verticesIndex].m_vecPosition;
+                                normals[verticesIndex] = vvd.vertices[verticesIndex].m_vecNormal;
+                                uv[verticesIndex] = vvd.vertices[verticesIndex].m_vecTexCoord;
                             }
-
-                            List<int> triangles = new List<int>();
-                            //for (int countUpLodIndex = 0; countUpLodIndex <= rootLodIndex; countUpLodIndex++)
-                            //{
-                                for (int stripGroupIndex = 0; stripGroupIndex < vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].stripGroupCount; stripGroupIndex++)
-                                {
-                                    //var currentStripGroup = vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups[0];
-                                    var currentStripGroup = vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups[stripGroupIndex];
-                                    //int trianglesCount = currentStripGroup.theVtxIndices.Length;
-                                    //int[] triangles = new int[trianglesCount];
-
-                                    for (int stripIndex = 0; stripIndex < currentStripGroup.theVtxStrips.Length; stripIndex++)
-                                    {
-                                        var currentStrip = currentStripGroup.theVtxStrips[stripIndex];
-
-                                        if (((StripHeaderFlags_t)currentStrip.flags & StripHeaderFlags_t.STRIP_IS_TRILIST) > 0)
-                                        {
-                                            for (int indexIndex = 0; indexIndex < currentStrip.indexCount; indexIndex += 3)
-                                            {
-                                                int vertexIndexA = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex]].originalMeshVertexIndex;
-                                                int vertexIndexB = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex + 2]].originalMeshVertexIndex;
-                                                int vertexIndexC = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex + 1]].originalMeshVertexIndex;
-
-                                                if (vertexIndexA < vertices.Length && vertexIndexB < vertices.Length && vertexIndexC < vertices.Length)
-                                                {
-                                                    triangles.Add(vertexIndexA);
-                                                    triangles.Add(vertexIndexB);
-                                                    triangles.Add(vertexIndexC);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            //}
 
                             //Debug.Assert(triangles.Count % 3 == 0, "SourceModel: Triangles not a multiple of three for " + modelName);
                             //Debug.Assert(vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups.Length == 1, "SourceModel: Strip groups not one (" + vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups.Length  + ") for " + modelName);
@@ -258,7 +282,7 @@ namespace UnitySourceEngine
 
                             MeshData meshData = new MeshData();
                             meshData.vertices = vertices;
-                            meshData.triangles = triangles.ToArray();
+                            meshData.triangles = triangles;
                             meshData.normals = normals;
                             meshData.uv = uv;
 

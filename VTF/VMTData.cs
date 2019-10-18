@@ -8,13 +8,20 @@ namespace UnitySourceEngine
     public class VMTData
     {
         private static Dictionary<string, VMTData> vmtCache = new Dictionary<string, VMTData>();
+
         public string vmtPath { get; private set; }
+
         public string includedVmtPath { get; private set; }
         private VMTData includedVmt;
         public string baseTexturePath { get; private set; }
         private SourceTexture baseTexture;
         public string bumpMapPath { get; private set; }
         private SourceTexture bumpMap;
+        public string detailMapPath { get; private set; }
+        private SourceTexture detailMap;
+
+        private float glossiness;
+
         private Material material;
         private VMTDataWrapper wrappedData;
 
@@ -23,12 +30,6 @@ namespace UnitySourceEngine
             vmtPath = _vmtPath;
             vmtCache.Add(vmtPath, this);
         }
-        //public VMTData(string key, byte[] byteData)
-        //{
-        //    vmtPath = key;
-        //    Parse(byteData);
-        //    vmtCache.Add(vmtPath, this);
-        //}
 
         public void Dispose()
         {
@@ -40,6 +41,7 @@ namespace UnitySourceEngine
             includedVmt?.Dispose();
             baseTexture?.Dispose();
             bumpMap?.Dispose();
+            detailMap?.Dispose();
         }
 
         public Material GetMaterial()
@@ -48,15 +50,21 @@ namespace UnitySourceEngine
             {
                 if (includedVmt != null)
                     material = new Material(includedVmt.GetMaterial());
-                else if (bumpMap != null)
-                    material = new Material(Shader.Find("Mobile/Bumped Diffuse Variant"));
                 else
-                    material = new Material(Shader.Find("Mobile/Diffuse"));
+                    material = new Material(Shader.Find("Standard"));
+                //else if (bumpMap != null)
+                //    material = new Material(Shader.Find("Mobile/Bumped Diffuse Variant"));
+                //else
+                //    material = new Material(Shader.Find("Mobile/Diffuse"));
 
                 if (baseTexture != null)
                     material.mainTexture = baseTexture.GetTexture();
                 if (bumpMap != null)
                     material.SetTexture("_BumpMap", bumpMap.GetTexture());
+                if (detailMap != null)
+                    material.SetTexture("_DetailMask", detailMap.GetTexture());
+
+                material.SetFloat("_Glossiness", glossiness);
             }
             return material;
         }
@@ -155,12 +163,15 @@ namespace UnitySourceEngine
         }
         private void GrabDependants(BSPParser bspParser, VPKParser vpkParser)
         {
+            if (!string.IsNullOrEmpty(includedVmtPath))
+                includedVmt = VMTData.GrabVMT(bspParser, vpkParser, includedVmtPath);
+
             if (!string.IsNullOrEmpty(baseTexturePath))
                 baseTexture = SourceTexture.GrabTexture(bspParser, vpkParser, baseTexturePath);
             if (!string.IsNullOrEmpty(bumpMapPath))
                 bumpMap = SourceTexture.GrabTexture(bspParser, vpkParser, bumpMapPath);
-            if (!string.IsNullOrEmpty(includedVmtPath))
-                includedVmt = VMTData.GrabVMT(bspParser, vpkParser, includedVmtPath);
+            if (!string.IsNullOrEmpty(detailMapPath))
+                detailMap = SourceTexture.GrabTexture(bspParser, vpkParser, detailMapPath);
         }
 
         public static string FixLocation(BSPParser bspParser, VPKParser vpkParser, string rawPath)
@@ -195,7 +206,22 @@ namespace UnitySourceEngine
             }
             else//if (wrappedData.dataTitle.Equals("lightmappedgeneric"))
             {
-                baseTexturePath = wrappedData.GetValue("$basetexture");
+                string surfaceProp = wrappedData.GetValue("$surfaceprop");
+                if (!string.IsNullOrEmpty(surfaceProp) && surfaceProp.Equals("metal", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    string tempBaseTexturePath = wrappedData.GetValue("$basetexture");
+                    if (!string.IsNullOrEmpty(tempBaseTexturePath) && !tempBaseTexturePath.Equals(vmtPath, System.StringComparison.OrdinalIgnoreCase))
+                        baseTexturePath = tempBaseTexturePath;
+
+                    detailMapPath = wrappedData.GetValue("$detail");
+                    glossiness = 0.5f;
+                }
+                else
+                {
+                    baseTexturePath = wrappedData.GetValue("$basetexture");
+                    glossiness = 0;
+                }
+
                 bumpMapPath = wrappedData.GetValue("$bumpmap");
             }
         }
@@ -259,84 +285,56 @@ namespace UnitySourceEngine
         public static VMTDataWrapper WrapData(string originalVmtString)
         {
             string modifiedVmtString = originalVmtString;
-            //Match nextEncapsulator;
-            //bool justStarted = true;
-            //VMTDataWrapper topLevelWrapper = new VMTDataWrapper();
             VMTDataWrapper currentVmtWrapper = new VMTDataWrapper();
-            //VMTDataWrapper previousVmtWrapper = null;
-            //do
-            //{
-                //if (justStarted)
-                //{
-                //    currentVmtWrapper = topLevelWrapper;
-                //    justStarted = false;
-                //}
-                //else
-                //    currentVmtWrapper = new VMTDataWrapper();
 
-                var nextEncapsulator = encapsulatorRegex.Match(modifiedVmtString);
-                if (nextEncapsulator.Success)
+            var nextEncapsulator = encapsulatorRegex.Match(modifiedVmtString);
+            if (nextEncapsulator.Success)
+            {
+                currentVmtWrapper.dataTitle = titleRegex.Match(nextEncapsulator.Value).Value.ToLower();
+                modifiedVmtString = modifiedVmtString.Substring(nextEncapsulator.Index + nextEncapsulator.Length);
+                int endEncapsulationIndex = modifiedVmtString.LastIndexOf("}");
+                if (endEncapsulationIndex < 0)
+                    endEncapsulationIndex = modifiedVmtString.Length;
+
+                modifiedVmtString = modifiedVmtString.Substring(0, endEncapsulationIndex);
+
+                string nextSubstring = "";
+                Match peekEncapsulator = encapsulatorRegex.Match(modifiedVmtString);
+                do
                 {
-                    currentVmtWrapper.dataTitle = titleRegex.Match(nextEncapsulator.Value).Value.ToLower();
-                    modifiedVmtString = modifiedVmtString.Substring(nextEncapsulator.Index + nextEncapsulator.Length);
-                    int endEncapsulationIndex = modifiedVmtString.LastIndexOf("}");
-                    if (endEncapsulationIndex < 0)
+                    peekEncapsulator = encapsulatorRegex.Match(modifiedVmtString);
+                    if (peekEncapsulator.Success)
                     {
-                        endEncapsulationIndex = modifiedVmtString.Length;
-                        //Debug.LogError("VMTData: Missing '}' in..\n\n" + originalVmtString);
-                        //break;
-                    }
-                    modifiedVmtString = modifiedVmtString.Substring(0, endEncapsulationIndex);
+                        endEncapsulationIndex = FindEncapsulationEnd(modifiedVmtString, peekEncapsulator.Index + peekEncapsulator.Length);
+                        if (endEncapsulationIndex < 0)
+                            endEncapsulationIndex = modifiedVmtString.Length - 1;
 
-                    string nextSubstring = "";
-                    Match peekEncapsulator = encapsulatorRegex.Match(modifiedVmtString);
-                    do
-                    {
-                        peekEncapsulator = encapsulatorRegex.Match(modifiedVmtString);
-                        if (peekEncapsulator.Success)
+                        int length = endEncapsulationIndex - peekEncapsulator.Index + 1;
+                        if (length >= 0)
                         {
-                            endEncapsulationIndex = FindEncapsulationEnd(modifiedVmtString, peekEncapsulator.Index + peekEncapsulator.Length);
-                            if (endEncapsulationIndex < 0)
-                            {
-                                endEncapsulationIndex = modifiedVmtString.Length - 1;
-                                //Debug.LogError("VMTData: Missing '}' in.." + originalVmtString);
-                                //break;
-                            }
-
-                            int length = endEncapsulationIndex - peekEncapsulator.Index + 1;
-                            if (length >= 0)
-                            {
-                                nextSubstring = modifiedVmtString.Substring(peekEncapsulator.Index, length);
-                                modifiedVmtString = modifiedVmtString.Substring(0, peekEncapsulator.Index) + modifiedVmtString.Substring(endEncapsulationIndex + 1);
-                                currentVmtWrapper.AddChild(WrapData(nextSubstring));
-                            }
-                            else
-                                Debug.LogError("VMTData: Next substring's length was less than zero in..\n\n" + originalVmtString);
+                            nextSubstring = modifiedVmtString.Substring(peekEncapsulator.Index, length);
+                            modifiedVmtString = modifiedVmtString.Substring(0, peekEncapsulator.Index) + modifiedVmtString.Substring(endEncapsulationIndex + 1);
+                            currentVmtWrapper.AddChild(WrapData(nextSubstring));
                         }
+                        else
+                            Debug.LogError("VMTData: Next substring's length was less than zero in..\n\n" + originalVmtString);
                     }
-                    while (peekEncapsulator.Success);
-
-                    var valuePairs = valuePairsRegex.Matches(modifiedVmtString);
-                    for (int i = 0; i < valuePairs.Count; i++)
-                    {
-                        var titleMatch = titleRegex.Match(valuePairs[i].Value);
-                        string valueName = titleMatch.Value.ToLower();
-                        int cutIndex = titleMatch.Index + titleMatch.Length + 1;
-                        string secondHalfOfPair = "";
-                        if (cutIndex < valuePairs[i].Value.Length)
-                            secondHalfOfPair = valuePairs[i].Value.Substring(cutIndex).Trim();
-                        string value = valueRegex.Match(secondHalfOfPair).Value;
-                        currentVmtWrapper.SetValue(valueName, value);
-                    }
-
-                    //modifiedVmtString = nextSubstring;
-
-                    //if (previousVmtWrapper != null)
-                    //    previousVmtWrapper.AddChild(currentVmtWrapper);
-                    //previousVmtWrapper = currentVmtWrapper;
                 }
-            //}
-            //while (nextEncapsulator.Success);
+                while (peekEncapsulator.Success);
+
+                var valuePairs = valuePairsRegex.Matches(modifiedVmtString);
+                for (int i = 0; i < valuePairs.Count; i++)
+                {
+                    var titleMatch = titleRegex.Match(valuePairs[i].Value);
+                    string valueName = titleMatch.Value.ToLower();
+                    int cutIndex = titleMatch.Index + titleMatch.Length + 1;
+                    string secondHalfOfPair = "";
+                    if (cutIndex < valuePairs[i].Value.Length)
+                        secondHalfOfPair = valuePairs[i].Value.Substring(cutIndex).Trim();
+                    string value = valueRegex.Match(secondHalfOfPair).Value;
+                    currentVmtWrapper.SetValue(valueName, value);
+                }
+            }
 
             return currentVmtWrapper;
         }
