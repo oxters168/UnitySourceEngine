@@ -46,7 +46,7 @@ namespace UnitySourceEngine
         {
             if (texture == null)
             {
-                texture = new Texture2D(width, height, TextureFormat.RGB24, false);
+                texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
                 texture.SetPixels(pixels);
                 texture.Apply();
             }
@@ -57,7 +57,7 @@ namespace UnitySourceEngine
             SourceTexture vtf;
             using (MemoryStream ms = new MemoryStream(vtfData))
             {
-                vtf = ReadAndCache(ms, vtfData.Length, location);
+                vtf = ReadAndCache(ms, 0, location);
             }
             return vtf;
         }
@@ -363,7 +363,7 @@ namespace UnitySourceEngine
             else if (imageFormat == VTFImageFormat.IMAGE_FORMAT_BGR888)
                 vtfColors = DecompressBGR888(data, width, height);
             else
-                Debug.LogError("SourceTexture: Unable to decompress format " + imageFormat);
+                Debug.LogError("SourceTexture: Unsupported format " + imageFormat);
 
             vtfColors = RotateProperly(vtfColors, width, height);
 
@@ -381,14 +381,13 @@ namespace UnitySourceEngine
                     byte blue = data[currentDataIndex];
                     byte green = data[currentDataIndex + 1];
                     byte red = data[currentDataIndex + 2];
-                    currentDataIndex += 4;
+                    currentDataIndex += 3;
 
                     int flattenedIndex = row * width + col;
                     texture2DColors[flattenedIndex] = new Color(((float)red) / byte.MaxValue, ((float)green) / byte.MaxValue, ((float)blue) / byte.MaxValue);
                 }
             }
 
-            Debug.Log("Read BGR888 width " + width + " height " + height + " data size " + data.Length + " stepped " + currentDataIndex);
             return texture2DColors;
         }
         private static Color[] DecompressDXT1(byte[] data, ushort width, ushort height)

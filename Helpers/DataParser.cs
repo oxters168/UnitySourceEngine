@@ -148,7 +148,7 @@ namespace UnitySourceEngine
         {
             byte[] buffer = new byte[1];
             stream.Read(buffer, 0, 1);
-            return Convert.ToSByte(buffer[0]);
+            return (sbyte)buffer[0];
         }
         /*public static sbyte ReadSByte(byte[] data, int bitIndex, byte bitsToRead = 8)
         {
