@@ -102,6 +102,8 @@ namespace UnitySourceEngine
                 textureStringData = null;
                 staticProps?.Dispose();
                 staticProps = null;
+
+                pakfiles = null;
             }
         }
 
@@ -494,6 +496,115 @@ namespace UnitySourceEngine
             return faces;
         }
 
+        public Dictionary<int, SourceLightmap> GetLightmaps(CancellationToken cancelToken)
+        {
+            lump_t lump;
+            if (version < 20)
+                lump = lumps[8];
+            else
+                lump = lumps[53];
+
+            Dictionary<int, SourceLightmap> lightmaps = new Dictionary<int, SourceLightmap>();
+
+            /*int samples = lump.filelen / 4;
+            int textureSize = (int)Mathf.Sqrt(samples);
+            Debug.Log("BSPParser: Lightmap Lump Length = " + lump.filelen + " Total Samples = " + samples + " Lightmap Dimension Size = " + textureSize);
+
+            SourceLightmap currentLightmap = new SourceLightmap();
+            currentLightmap.width = textureSize;
+            currentLightmap.height = textureSize;
+            currentLightmap.lightmapColors = new Color[samples];
+            for (int colorIndex = 0; colorIndex < currentLightmap.lightmapColors.Length; colorIndex++)
+            {
+                if (cancelToken.IsCancellationRequested)
+                    return null;
+
+                Color currentColor;
+
+                if (version < 20)
+                {
+                    byte r = DataParser.ReadByte(bspStream);
+                    byte g = DataParser.ReadByte(bspStream);
+                    byte b = DataParser.ReadByte(bspStream);
+                    sbyte exponent = DataParser.ReadSByte(bspStream);
+                    currentColor = ColorRGBExp32.GetColor(r, g, b, exponent);
+                }
+                else
+                {
+                    byte r = DataParser.ReadByte(bspStream);
+                    byte g = DataParser.ReadByte(bspStream);
+                    byte b = DataParser.ReadByte(bspStream);
+                    byte a = DataParser.ReadByte(bspStream);
+                    currentColor = new Color(r / 255f, g / 255f, b / 255f, a / 255f);
+                }
+
+                currentLightmap.lightmapColors[colorIndex] = currentColor;
+            }
+            lightmaps[0] = currentLightmap;*/
+
+            foreach (var face in faces)
+            {
+                if (cancelToken.IsCancellationRequested)
+                    return null;
+
+                int stylesCount = 0;
+                for (int i = 0; i < face.styles.Length; i++)
+                    if (face.styles[i] < byte.MaxValue)
+                        stylesCount++;
+                int luxelCount = (face.LightmapTextureSizeInLuxels[0] + 1) * (face.LightmapTextureSizeInLuxels[1] + 1);
+                int numberOfSamples = luxelCount * stylesCount;
+                int textureSize = Mathf.CeilToInt(Mathf.Sqrt(numberOfSamples));
+                Debug.Log("BSPParser: Reading lightmap LuxelCount(" + luxelCount + ") Styles(" + stylesCount + ") Samples(" + numberOfSamples + ") Dimensions(" + textureSize + ", " + textureSize + ") Mins(" + face.LightmapTextureMinsInLuxels[0] + ", " + face.LightmapTextureMinsInLuxels[1] + ")");
+
+                if (face.lightofs >= 0 && stylesCount > 0 && !lightmaps.ContainsKey(face.lightofs))
+                {
+                    bspStream.Position = lump.fileofs + face.lightofs;
+                    //int width = face.LightmapTextureSizeInLuxels[0] + 1;
+                    //int height = face.LightmapTextureSizeInLuxels[1] + 1;
+
+                    //for (int styleIndex = 0; styleIndex < face.styles.Length; styleIndex++)
+                    //{
+                        //if (cancelToken.IsCancellationRequested)
+                        //    return null;
+
+                        //if (face.styles[0] < byte.MaxValue)
+                        //{
+                            SourceLightmap currentLightmap = new SourceLightmap();
+                            currentLightmap.width = textureSize;
+                            currentLightmap.height = textureSize;
+                            currentLightmap.lightmapColors = new Color[numberOfSamples];
+                            for (int colorIndex = 0; colorIndex < currentLightmap.lightmapColors.Length; colorIndex++)
+                            {
+                                if (cancelToken.IsCancellationRequested)
+                                    return null;
+
+                                Color currentColor;
+                                if (version < 20)
+                                {
+                                    byte r = DataParser.ReadByte(bspStream);
+                                    byte g = DataParser.ReadByte(bspStream);
+                                    byte b = DataParser.ReadByte(bspStream);
+                                    sbyte exponent = DataParser.ReadSByte(bspStream);
+                                    currentColor = ColorRGBExp32.GetColor(r, g, b, exponent);
+                                }
+                                else
+                                {
+                                    byte r = DataParser.ReadByte(bspStream);
+                                    byte g = DataParser.ReadByte(bspStream);
+                                    byte b = DataParser.ReadByte(bspStream);
+                                    byte a = DataParser.ReadByte(bspStream);
+                                    currentColor = new Color(r / 255f, g / 255f, b / 255f);
+                                }
+                                currentLightmap.lightmapColors[colorIndex] = currentColor;
+                            }
+                            lightmaps[face.lightofs] = currentLightmap;
+                        //}
+                    //}
+                }
+            }
+            return lightmaps;
+        }
+
         private dplane_t[] GetPlanes(Stream stream, CancellationToken cancelToken)
         {
             lump_t lump = lumps[1];
@@ -751,7 +862,7 @@ namespace UnitySourceEngine
                     {
                         nullPaddedName[j] = DataParser.ReadChar(stream);
                     }
-                    staticProps.staticPropDict.names[i] = new string(nullPaddedName);
+                    staticProps.staticPropDict.names[i] = new string(nullPaddedName).Replace("\0", "");
                     //Debug.Log(i + ": " + staticProps.staticPropDict.names[i]);
                 }
                 #endregion
@@ -949,7 +1060,7 @@ namespace UnitySourceEngine
 
                 byte[] fileNameBytes = new byte[zipFile.fileNameLength];
                 stream.Read(fileNameBytes, 0, fileNameBytes.Length);
-                string fileName = System.Text.Encoding.ASCII.GetString(fileNameBytes);
+                string fileName = System.Text.Encoding.ASCII.GetString(fileNameBytes).Replace("\\", "/").ToLower();
 
                 stream.Position += zipFile.extraFieldLength;
 

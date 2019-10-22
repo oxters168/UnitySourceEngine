@@ -61,7 +61,7 @@ namespace UnitySourceEngine
             }
             return vtf;
         }
-        public static SourceTexture ReadAndCache(Stream stream, int origOffset, string location)
+        public static SourceTexture ReadAndCache(Stream stream, long origOffset, string location)
         {
             string fixedLocation = location.Replace("\\", "/").ToLower();
 
@@ -236,13 +236,14 @@ namespace UnitySourceEngine
             return plain;
         }
 
-        public static Color[] LoadVTFFile(Stream stream, int vtfBytePosition, out int width, out int height)
+        public static Color[] LoadVTFFile(Stream stream, long vtfBytePosition, out int width, out int height)
         {
             //Texture2D extracted = null;
             Color[] extracted = null;
             width = 0; height = 0;
             if (stream != null)
             {
+                stream.Position = vtfBytePosition;
                 int signature = DataParser.ReadInt(stream);
                 if (signature == VTFHeader.signature)
                 {
@@ -362,6 +363,8 @@ namespace UnitySourceEngine
                 vtfColors = DecompressDXT5(data, width, height);
             else if (imageFormat == VTFImageFormat.IMAGE_FORMAT_BGR888)
                 vtfColors = DecompressBGR888(data, width, height);
+            else if (imageFormat == VTFImageFormat.IMAGE_FORMAT_BGRA8888)
+                vtfColors = DecompressBGRA8888(data, width, height);
             else
                 Debug.LogError("SourceTexture: Unsupported format " + imageFormat);
 
@@ -385,6 +388,28 @@ namespace UnitySourceEngine
 
                     int flattenedIndex = row * width + col;
                     texture2DColors[flattenedIndex] = new Color(((float)red) / byte.MaxValue, ((float)green) / byte.MaxValue, ((float)blue) / byte.MaxValue);
+                }
+            }
+
+            return texture2DColors;
+        }
+        private static Color[] DecompressBGRA8888(byte[] data, ushort width, ushort height)
+        {
+            Color[] texture2DColors = new Color[width * height];
+
+            int currentDataIndex = 0;
+            for (int row = 0; row < height; row++)
+            {
+                for (int col = 0; col < width; col++)
+                {
+                    byte blue = data[currentDataIndex];
+                    byte green = data[currentDataIndex + 1];
+                    byte red = data[currentDataIndex + 2];
+                    byte alpha = data[currentDataIndex + 3];
+                    currentDataIndex += 4;
+
+                    int flattenedIndex = row * width + col;
+                    texture2DColors[flattenedIndex] = new Color(((float)red) / byte.MaxValue, ((float)green) / byte.MaxValue, ((float)blue) / byte.MaxValue, ((float)alpha) / byte.MaxValue);
                 }
             }
 
@@ -423,10 +448,10 @@ namespace UnitySourceEngine
 
                     Color[] colorPalette = new Color[]
                     {
-                    new Color(colors0[0] / 255f, colors0[1] / 255f, colors0[2] / 255f),
-                    new Color(colors1[0] / 255f, colors1[1] / 255f, colors1[2] / 255f),
-                    new Color(((colors0[0] * 2 + colors1[0] + 1) / 3) / 255f, ((colors0[1] * 2 + colors1[1] + 1) / 3) / 255f, ((colors0[2] * 2 + colors1[2] + 1) / 3) / 255f),
-                    new Color(((colors1[0] * 2 + colors0[0] + 1) / 3) / 255f, ((colors1[1] * 2 + colors0[1] + 1) / 3) / 255f, ((colors1[2] * 2 + colors0[2] + 1) / 3) / 255f)
+                        new Color(colors0[0] / 255f, colors0[1] / 255f, colors0[2] / 255f),
+                        new Color(colors1[0] / 255f, colors1[1] / 255f, colors1[2] / 255f),
+                        new Color(((colors0[0] * 2 + colors1[0] + 1) / 3) / 255f, ((colors0[1] * 2 + colors1[1] + 1) / 3) / 255f, ((colors0[2] * 2 + colors1[2] + 1) / 3) / 255f),
+                        new Color(((colors1[0] * 2 + colors0[0] + 1) / 3) / 255f, ((colors1[1] * 2 + colors0[1] + 1) / 3) / 255f, ((colors1[2] * 2 + colors0[2] + 1) / 3) / 255f)
                     };
 
                     if (color0Data < color1Data)

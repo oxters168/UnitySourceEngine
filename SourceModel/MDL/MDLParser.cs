@@ -15,7 +15,6 @@ namespace UnitySourceEngine
         public mstudiotexture_t[] textures;
         public string[] texturePaths;
 
-        //private byte[] data;
         public studiohdr_t header1;
         public studiohdr2_t header2;
 
@@ -65,14 +64,14 @@ namespace UnitySourceEngine
                         texture?.Dispose();
                 textures = null;
                 texturePaths = null;
-                //data = null;
-                header1?.Dispose();
-                header2?.Dispose();
+                //header1?.Dispose();
+                //header2?.Dispose();
             }
         }
 
         public void Parse(Stream stream, long offsetPosition = 0)
         {
+            stream.Position = offsetPosition;
             fileBeginOffset = offsetPosition;
             //if (data == null || data.Length <= 0)
             //    throw new ArgumentNullException("No data provided");

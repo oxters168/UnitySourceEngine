@@ -42,6 +42,7 @@ namespace UnitySourceEngine
 
         public void Parse(Stream stream, long fileOffset = 0)
         {
+            stream.Position = fileOffset;
             fileOffsetPosition = fileOffset;
             try
             {

@@ -48,13 +48,14 @@ namespace UnitySourceEngine
             }
         }
 
-        public void Parse(Stream stream, long fileOffset = 0)
+        public void Parse(Stream stream, int rootLod = 0, long fileOffset = 0)
         {
+            stream.Position = fileOffset;
             fileOffsetPosition = fileOffset;
 
             ParseHeader(stream);
             ParseFixupTable(stream);
-            ParseVertices(stream);
+            ParseVertices(stream, rootLod);
         }
         private void ParseHeader(Stream stream)
         {
@@ -88,10 +89,10 @@ namespace UnitySourceEngine
                 fileFixup[i].numVertices = DataParser.ReadInt(stream);
             }
         }
-        private void ParseVertices(Stream stream)
+        private void ParseVertices(Stream stream, int rootLod)
         {
-            //for (int i = 0; i < rootLOD; i++)
-            //    header.numLODVertices[i] = header.numLODVertices[rootLOD];
+            for (int i = 0; i < rootLod; i++)
+                header.numLODVertices[i] = header.numLODVertices[rootLod];
 
             //int lodIndex = 0;
 
@@ -129,6 +130,7 @@ namespace UnitySourceEngine
 
                 stream.Position = fileOffsetPosition + header.vertexDataStart;
 
+                //int vertexCount = header.numLODVertices[0];
                 int vertexCount = 0;
                 for (int i = 0; i < header.numLODVertices.Length; i++)
                     vertexCount += header.numLODVertices[i];
@@ -142,8 +144,8 @@ namespace UnitySourceEngine
                     vertexCount = 0;
                     for (int fixupIndex = 0; fixupIndex < header.numFixups; fixupIndex++)
                     {
-                        //if (fileFixup[fixupIndex].lod < lodIndex)
-                        //    continue;
+                        if (fileFixup[fixupIndex].lod < rootLod)
+                            continue;
 
                         vertexCount += fileFixup[fixupIndex].numVertices;
                     }
@@ -154,8 +156,8 @@ namespace UnitySourceEngine
                     int currentIndex = 0;
                     for (int fixupIndex = 0; fixupIndex < header.numFixups; fixupIndex++)
                     {
-                        //if (fileFixup[fixupIndex].lod < lodIndex)
-                        //    continue;
+                        if (fileFixup[fixupIndex].lod < rootLod)
+                            continue;
 
                         Array.Copy(oldVertices, fileFixup[fixupIndex].sourceVertexID, vertices, currentIndex, fileFixup[fixupIndex].numVertices);
                         currentIndex += fileFixup[fixupIndex].numVertices;

@@ -21,6 +21,7 @@ namespace UnitySourceEngine
         private SourceTexture detailMap;
 
         private float glossiness;
+        private bool hasTransparency;
 
         private Material material;
         private VMTDataWrapper wrappedData;
@@ -50,6 +51,10 @@ namespace UnitySourceEngine
             {
                 if (includedVmt != null)
                     material = new Material(includedVmt.GetMaterial());
+                else if (hasTransparency && bumpMap == null)
+                    material = new Material(Shader.Find("Legacy Shaders/Transparent/Diffuse"));
+                else if (hasTransparency && bumpMap != null)
+                    material = new Material(Shader.Find("Legacy Shaders/Transparent/Bumped Diffuse"));
                 else
                     material = new Material(Shader.Find("Standard"));
                 //else if (bumpMap != null)
@@ -59,12 +64,13 @@ namespace UnitySourceEngine
 
                 if (baseTexture != null)
                     material.mainTexture = baseTexture.GetTexture();
-                if (bumpMap != null)
+                if (bumpMap != null && material.HasProperty("_BumpMap"))
                     material.SetTexture("_BumpMap", bumpMap.GetTexture());
-                if (detailMap != null)
+                if (detailMap != null && material.HasProperty("_DetailMask"))
                     material.SetTexture("_DetailMask", detailMap.GetTexture());
 
-                material.SetFloat("_Glossiness", glossiness);
+                if (material.HasProperty("_Glossiness"))
+                    material.SetFloat("_Glossiness", glossiness);
             }
             return material;
         }
@@ -73,7 +79,7 @@ namespace UnitySourceEngine
             return vmtCache.ContainsKey(key);
         }
 
-        public static VMTData GrabVMT(byte[] data, string rawPath)
+        /*public static VMTData GrabVMT(byte[] data, string rawPath)
         {
             VMTData vmtData = null;
 
@@ -95,7 +101,7 @@ namespace UnitySourceEngine
                 Debug.LogError("VMTData: Given path is null or empty");
 
             return vmtData;
-        }
+        }*/
         public static VMTData GrabVMT(BSPParser bspParser, VPKParser vpkParser, string rawPath, bool grabDependants = true)
         {
             VMTData vmtData = null;
@@ -103,7 +109,6 @@ namespace UnitySourceEngine
             if (!string.IsNullOrEmpty(rawPath))
             {
                 string vmtFilePath = FixLocation(bspParser, vpkParser, rawPath);
-
                 if (vmtCache.ContainsKey(vmtFilePath))
                 {
                     vmtData = vmtCache[vmtFilePath];
@@ -124,17 +129,17 @@ namespace UnitySourceEngine
                     {
                         try
                         {
+                            byte[] vmtByteData = null;
                             vpkParser.LoadFileAsStream(vmtFilePath, (stream, origOffset, fileLength) =>
                             {
-                                byte[] vmtByteData = new byte[fileLength];
+                                vmtByteData = new byte[fileLength];
                                 stream.Position = origOffset;
                                 stream.Read(vmtByteData, 0, vmtByteData.Length);
-
-                                vmtData = new VMTData(vmtFilePath);
-                                vmtData.Parse(vmtByteData);
-                                if (grabDependants)
-                                    vmtData.GrabDependants(bspParser, vpkParser);
                             });
+                            vmtData = new VMTData(vmtFilePath);
+                            vmtData.Parse(vmtByteData);
+                            if (grabDependants)
+                                vmtData.GrabDependants(bspParser, vpkParser);
                         }
                         catch (System.Exception e)
                         {
@@ -210,19 +215,21 @@ namespace UnitySourceEngine
                 if (!string.IsNullOrEmpty(surfaceProp) && surfaceProp.Equals("metal", System.StringComparison.OrdinalIgnoreCase))
                 {
                     string tempBaseTexturePath = wrappedData.GetValue("$basetexture");
-                    if (!string.IsNullOrEmpty(tempBaseTexturePath) && !tempBaseTexturePath.Equals(vmtPath, System.StringComparison.OrdinalIgnoreCase))
+                    if (!string.IsNullOrEmpty(tempBaseTexturePath))
                         baseTexturePath = tempBaseTexturePath;
 
                     detailMapPath = wrappedData.GetValue("$detail");
-                    glossiness = 0.5f;
+                    //glossiness = 0.5f;
                 }
                 else
                 {
                     baseTexturePath = wrappedData.GetValue("$basetexture");
-                    glossiness = 0;
+                    //glossiness = 0;
                 }
 
+                glossiness = 0;
                 bumpMapPath = wrappedData.GetValue("$bumpmap");
+                hasTransparency = !string.IsNullOrEmpty(wrappedData.GetValue("$alphatest"));
             }
         }
     }

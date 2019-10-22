@@ -23,6 +23,7 @@ namespace UnitySourceEngine
         //public static bool excludeTextures;
         public static bool excludeModels;
         public static bool excludeMapFaces;
+        public static bool applyLightmaps;
         public static string vpkLoc;
         //public static Material mapMaterial;
         public GameObject gameObject { get; private set; }
@@ -33,6 +34,7 @@ namespace UnitySourceEngine
         private List<FaceMesh> allFaces = new List<FaceMesh>();
         private StaticPropData[] staticProps;
         //private SourceModel[] staticProps;
+        public Dictionary<int, SourceLightmap> lightmaps; //Maps from face lightofs to lightmap
         #endregion
 
         #region Feedback
@@ -71,23 +73,15 @@ namespace UnitySourceEngine
             isBuilding = false;
             currentMessage = string.Empty;
 
-            //if (noTexture != null)
-            //{
-            //    UnityEngine.Object.Destroy(noTexture);
-            //    noTexture = null;
-            //}
-            //foreach (var matPair in materialsCreated)
-            //    UnityEngine.Object.Destroy(matPair.Value);
-            //materialsCreated.Clear();
-            //materialsCreated = new Dictionary<SourceTexture, Material>();
-
-            //if (staticProps != null)
-            //    foreach (SourceModel prop in staticProps)
-            //        prop?.Dispose();
             if (staticProps != null)
                 foreach (var prop in staticProps)
                     prop.model?.Dispose();
             staticProps = null;
+
+            if (lightmaps != null)
+                foreach (var lightmap in lightmaps)
+                    lightmap.Value.Dispose();
+            lightmaps = null;
 
             foreach (var face in allFaces)
                 face?.Dispose();
@@ -113,30 +107,68 @@ namespace UnitySourceEngine
                 if (cancelToken.IsCancellationRequested)
                     return null;
 
-                foreach (dface_t face in bspParser.faces)
+                //Note: If there are materials that point to textures in separate archives or there are textures used by the models whose vpk archive is not already
+                //      added by other dependencies, those archives will not be added. That would require us to read the materials and models to get what textures they use.
+
+                #region Map face textures dependencies
+                if (!excludeMapFaces)
                 {
-                    if (cancelToken.IsCancellationRequested)
-                        return null;
-
-                    texflags currentTexFlags = GetFaceTextureFlags(face, bspParser);
-                    string textureLocation = GetFaceTextureLocation(face, bspParser);
-
-                    if (!IsUndesiredTexture(textureLocation, currentTexFlags))
+                    foreach (dface_t face in bspParser.faces)
                     {
-                        string dependency;
-                        if (!vpkParser.FileExists("/materials/" + textureLocation + ".vtf"))
-                            dependency = vpkParser.LocateInArchive("/materials/" + textureLocation + ".vmt");
-                        else
-                            dependency = vpkParser.LocateInArchive("/materials/" + textureLocation + ".vtf");
+                        if (cancelToken.IsCancellationRequested)
+                            return null;
 
+                        texflags currentTexFlags = GetFaceTextureFlags(face, bspParser);
+                        string rawTextureLocation = GetFaceTextureLocation(face, bspParser);
+
+                        if (!IsUndesiredTexture(rawTextureLocation, currentTexFlags))
+                        {
+                            string fixedLocation = VMTData.FixLocation(bspParser, vpkParser, rawTextureLocation);
+                            if (!vpkParser.FileExists(fixedLocation))
+                                fixedLocation = SourceTexture.FixLocation(bspParser, vpkParser, rawTextureLocation);
+
+                            string dependency = vpkParser.LocateInArchive(fixedLocation);
+
+                            if (!string.IsNullOrEmpty(dependency) && !dependencies.Contains(dependency))
+                                dependencies.Add(dependency);
+                        }
+                    }
+                }
+                #endregion
+
+                #region Model dependencies
+                if (!excludeModels)
+                {
+                    for (int i = 0; i < bspParser.staticProps.staticPropInfo.Length; i++)
+                    {
+                        if (cancelToken.IsCancellationRequested)
+                            return null;
+
+                        var currentPropInfo = bspParser.staticProps.staticPropInfo[i];
+
+                        ushort propType = currentPropInfo.PropType;
+                        string modelFullPath = bspParser.staticProps.staticPropDict.names[propType];
+                        modelFullPath = modelFullPath.Substring(0, modelFullPath.LastIndexOf("."));
+
+                        string mdlPath = modelFullPath + ".mdl";
+                        string vvdPath = modelFullPath + ".vvd";
+                        string vtxPath = modelFullPath + ".vtx";
+
+                        if (!vpkParser.FileExists(vtxPath))
+                            vtxPath = modelFullPath + ".dx90.vtx";
+
+                        string dependency = vpkParser.LocateInArchive(mdlPath);
+                        if (!string.IsNullOrEmpty(dependency) && !dependencies.Contains(dependency))
+                            dependencies.Add(dependency);
+                        dependency = vpkParser.LocateInArchive(vvdPath);
+                        if (!string.IsNullOrEmpty(dependency) && !dependencies.Contains(dependency))
+                            dependencies.Add(dependency);
+                        dependency = vpkParser.LocateInArchive(vtxPath);
                         if (!string.IsNullOrEmpty(dependency) && !dependencies.Contains(dependency))
                             dependencies.Add(dependency);
                     }
                 }
-
-                //Todo: Add vpk dependency check for static props
-                //if (validVPK && !excludeModels)
-                //    ReadStaticProps(bspParser, vpkParser, onProgressChanged);
+                #endregion
             }
             return dependencies;
         }
@@ -152,6 +184,8 @@ namespace UnitySourceEngine
             using (BSPParser bspParser = new BSPParser(Path.Combine(mapDir, mapName + ".bsp")))
             {
                 bspParser.ParseData(cancelToken);
+                //if (!cancelToken.IsCancellationRequested)
+                //    lightmaps = bspParser.GetLightmaps(cancelToken);
 
                 int facesCount = excludeMapFaces ? 0 : bspParser.faces.Length;
                 int propsCount = excludeModels ? 0 : bspParser.staticProps.staticPropInfo.Length;
@@ -216,6 +250,7 @@ namespace UnitySourceEngine
                 {
                     FaceMesh currentFace = new FaceMesh();
                     currentFace.textureFlag = currentTexFlags;
+                    currentFace.lightmapKey = bspParser.faces[i].lightofs;
 
                     currentFace.faceName = textureLocation;
                     currentFace.material = VMTData.GrabVMT(bspParser, vpkParser, textureLocation);
@@ -474,13 +509,9 @@ namespace UnitySourceEngine
 
                 ushort propType = currentPropInfo.PropType;
                 string modelFullPath = bspParser.staticProps.staticPropDict.names[propType];
+                modelFullPath = modelFullPath.Substring(0, modelFullPath.LastIndexOf("."));
 
-                string modelName = "", modelLocation = "";
-                modelName = modelFullPath.Substring(modelFullPath.LastIndexOf("/") + 1);
-                modelName = modelName.Substring(0, modelName.LastIndexOf("."));
-                modelLocation = modelFullPath.Substring(0, modelFullPath.LastIndexOf("/"));
-
-                staticProps[i].model = SourceModel.GrabModel(bspParser, vpkParser, modelName, modelLocation);
+                staticProps[i].model = SourceModel.GrabModel(bspParser, vpkParser, modelFullPath);
 
                 staticProps[i].origin = currentPropInfo.Origin;
                 staticProps[i].angles = currentPropInfo.Angles;
@@ -503,6 +534,17 @@ namespace UnitySourceEngine
             int staticPropsCount = staticProps != null ? staticProps.Length : 0;
             totalItemsToLoad = allFaces.Count + staticPropsCount;
 
+            /*List<LightmapData> lightmapDataList = new List<LightmapData>();
+            foreach (var lightmap in lightmaps)
+            {
+                LightmapData ld = new LightmapData();
+                ld.lightmapColor = lightmap.Value.GetTexture();
+                lightmap.Value.lightmapIndex = lightmapDataList.Count;
+                lightmapDataList.Add(ld);
+            }
+            Debug.Log("BSPMap: Added " + lightmapDataList.Count + " lightmap(s)");
+            LightmapSettings.lightmaps = lightmapDataList.ToArray();*/
+
             foreach (FaceMesh face in allFaces)
             {
                 string faceName = face.faceName;
@@ -513,7 +555,13 @@ namespace UnitySourceEngine
                 faceGO.transform.position = face.relativePosition;
                 faceGO.transform.rotation = Quaternion.Euler(face.relativeRotation);
                 faceGO.AddComponent<MeshFilter>().mesh = face.meshData.GetMesh();
-                faceGO.AddComponent<MeshRenderer>().material = face.material?.GetMaterial();
+                var faceRenderer = faceGO.AddComponent<MeshRenderer>();
+                faceRenderer.material = face.material?.GetMaterial();
+                /*if (lightmaps.ContainsKey(face.lightmapKey))
+                {
+                    //faceRenderer.material.mainTexture = lightmaps[face.lightmapKey].GetTexture();
+                    faceRenderer.lightmapIndex = lightmaps[face.lightmapKey].lightmapIndex;
+                }*/
                 faceGO = null;
 
                 totalItemsLoaded++;
@@ -564,6 +612,7 @@ namespace UnitySourceEngine
         //public float xOffset, yOffset;
         public texflags textureFlag;
         public VMTData material;
+        public int lightmapKey = -1;
         //public SourceTexture texture;
 
         public FaceMesh()

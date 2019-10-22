@@ -1,6 +1,6 @@
 ﻿namespace UnitySourceEngine
 {
-    public class studiohdr2_t
+    public struct studiohdr2_t
     {
         // ??
         public int srcbonetransform_count;
@@ -18,10 +18,5 @@
         public int m_nBoneFlexDriverIndex;
 
         public int[] reserved;
-
-        public void Dispose()
-        {
-            reserved = null;
-        }
     }
 }

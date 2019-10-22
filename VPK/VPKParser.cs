@@ -14,8 +14,10 @@ namespace UnitySourceEngine
         private int headerSize;
         private Dictionary<string, Dictionary<string, Dictionary<string, VPKDirectoryEntry>>> tree = new Dictionary<string, Dictionary<string, Dictionary<string, VPKDirectoryEntry>>>();
 
+        private List<ushort> archivesNotFound = new List<ushort>();
+
         private Stream preloadStream;
-        private VPKStream[] openStreams = new VPKStream[5];
+        private VPKStream[] openStreams = new VPKStream[7];
         private int nextStreamIndex;
 
         public VPKParser(string _directoryLocation) : this(_directoryLocation, "pak01") { }
@@ -47,6 +49,9 @@ namespace UnitySourceEngine
                 preloadStream?.Dispose();
                 foreach (var streamWrapper in openStreams)
                     streamWrapper.stream?.Dispose();
+
+                archivesNotFound.Clear();
+                archivesNotFound = null;
 
                 header = null;
                 if (tree != null)
@@ -146,8 +151,10 @@ namespace UnitySourceEngine
                             dirEntry.EntryLength = DataParser.ReadUInt(currentStream);
                             ushort terminator = DataParser.ReadUShort(currentStream);
 
-                            if (dirEntry.ArchiveIndex == DIR_PAK)
-                                dirEntry.EntryOffset = (uint)currentStream.Position;
+                            if (dirEntry.EntryOffset == 0 && dirEntry.ArchiveIndex == DIR_PAK)
+                                dirEntry.EntryOffset = Convert.ToUInt32(currentStream.Position);
+                            if (dirEntry.EntryLength == 0)
+                                dirEntry.EntryLength = dirEntry.PreloadBytes;
 
                             currentStream.Position += dirEntry.PreloadBytes;
 
@@ -193,7 +200,7 @@ namespace UnitySourceEngine
 
             return archiveName;
         }
-        public void LoadFileAsStream(string path, Action<Stream, int, int> streamActions)
+        public void LoadFileAsStream(string path, Action<Stream, uint, uint> streamActions)
         {
             string fixedPath = path.Replace("\\", "/");
             string extension = fixedPath.Substring(fixedPath.LastIndexOf(".") + 1);
@@ -203,7 +210,7 @@ namespace UnitySourceEngine
 
             LoadFileAsStream(extension, directory, fileName, streamActions);
         }
-        public void LoadFileAsStream(string extension, string directory, string fileName, Action<Stream, int, int> streamActions)
+        public void LoadFileAsStream(string extension, string directory, string fileName, Action<Stream, uint, uint> streamActions)
         {
             CheckHeader();
 
@@ -223,12 +230,7 @@ namespace UnitySourceEngine
             {
                 Stream currentStream = GetStream(entry.ArchiveIndex);
                 if (currentStream != null)
-                {
-                    int fileOffset = (int)entry.EntryOffset;
-
-                    currentStream.Position = fileOffset;
-                    streamActions(currentStream, fileOffset, (int)(entry.EntryLength + entry.PreloadBytes));
-                }
+                    streamActions(currentStream, entry.EntryOffset, entry.EntryLength);
             }
             else
                 UnityEngine.Debug.LogError("VPKParser: Could not find entry " + dirFixed + "/" + fileNameFixed + "." + extFixed);
@@ -269,8 +271,11 @@ namespace UnitySourceEngine
 
                     nextStreamIndex = (nextStreamIndex + 1) % openStreams.Length;
                 }
-                else
+                else if (!archivesNotFound.Contains(archiveIndex))
+                {
+                    archivesNotFound.Add(archiveIndex);
                     UnityEngine.Debug.LogError("VPKParser: Could not find archive " + archiveName + ", full path = '" + archivePath + "'");
+                }
             }
 
             return currentStream;

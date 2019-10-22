@@ -2,7 +2,7 @@
 
 namespace UnitySourceEngine
 {
-    public class studiohdr_t
+    public struct studiohdr_t
     {
         public int id; // Model format ID, such as "IDST" (0x49 0x44 0x53 0x54)
         public int version; // Format version number, such as 48 (0x30,0x00,0x00,0x00)
@@ -189,10 +189,5 @@ namespace UnitySourceEngine
         /**
          * As of this writing, the header is 408 bytes long in total
          */
-
-        public void Dispose()
-        {
-            name = null;
-        }
     }
 }
