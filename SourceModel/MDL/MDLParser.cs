@@ -100,7 +100,7 @@ namespace UnitySourceEngine
             }
             header1.name = name; // The internal name of the model, padding with null bytes.
                                  // Typically "my_model.mdl" will have an internal name of "my_model"
-            this.name = new String(name);
+            this.name = new string(name).Replace("\0", "");
             header1.dataLength = DataParser.ReadInt(stream);    // Data size of MDL file in bytes.
 
             // A vector is 12 bytes, three 4-byte float-values in a row.
@@ -263,9 +263,9 @@ namespace UnitySourceEngine
             header1.numAllowedRootLods = DataParser.ReadByte(stream);
 
             //header.unused; // ??
-            DataParser.ReadByte(stream);
+            header1.unused1 = DataParser.ReadByte(stream);
             //header.unused; // ??
-            DataParser.ReadInt(stream);
+            header1.unused2 = DataParser.ReadInt(stream);
 
             // mstudioflexcontrollerui_t
             header1.flexcontrollerui_count = DataParser.ReadInt(stream);
@@ -283,7 +283,7 @@ namespace UnitySourceEngine
             header1.studiohdr2index = DataParser.ReadInt(stream);
 
             //header.unused; // ??
-            DataParser.ReadInt(stream);
+            header1.unused3 = DataParser.ReadInt(stream);
 
             return header1;
         }

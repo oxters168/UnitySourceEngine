@@ -166,8 +166,8 @@ namespace UnitySourceEngine
         // 0 means any allowed, N means Lod 0 -> (N-1)
         public byte numAllowedRootLods;
 
-        //public byte unused; // ??
-        //public int unused; // ??
+        public byte unused1; // ??
+        public int unused2; // ??
 
         // mstudioflexcontrollerui_t
         public int flexcontrollerui_count;
@@ -184,7 +184,92 @@ namespace UnitySourceEngine
         // studiohdr2_t
         public int studiohdr2index;
 
-        //public int unused; // ??
+        public int unused3; // ??
+
+        public override string ToString()
+        {
+            string output = "MDLHeader1";
+            output += "\n_id(" + id + ")";
+            output += "\n_version(" + version + ")";
+            output += "\n_checksum(" + checkSum + ")";
+            output += "\n_name(" + new string(name).Replace("\0", "") + ")";
+            output += "\n_datalength(" + dataLength + ")";
+            output += "\n_eyeposition(" + eyeposition + ")";
+            output += "\n_illumposition(" + illumposition + ")";
+            output += "\n_hull_min(" + hull_min + ")";
+            output += "\n_hull_max(" + hull_max + ")";
+            output += "\n_view_bbmin(" + view_bbmin + ")";
+            output += "\n_view_bbmax(" + view_bbmax + ")";
+            output += "\n_flags(" + flags + ")";
+            output += "\n_bone_count(" + bone_count + ")";
+            output += "\n_bone_offset(" + bone_offset + ")";
+            output += "\n_bonecontroller_count(" + bonecontroller_count + ")";
+            output += "\n_bonecontroller_offset(" + bonecontroller_offset + ")";
+            output += "\n_hitbox_count(" + hitbox_count + ")";
+            output += "\n_hitbox_offset(" + hitbox_offset + ")";
+            output += "\n_localanim_count(" + localanim_count + ")";
+            output += "\n_localanim_offset(" + localanim_offset + ")";
+            output += "\n_localseq_count(" + localseq_count + ")";
+            output += "\n_localseq_offset(" + localseq_offset + ")";
+            output += "\n_activitylistversion(" + activitylistversion + ")";
+            output += "\n_eventsindexed(" + eventsindexed + ")";
+            output += "\n_texture_count(" + texture_count + ")";
+            output += "\n_texture_offset(" + texture_offset + ")";
+            output += "\n_texturedir_count(" + texturedir_count + ")";
+            output += "\n_texturedir_offset(" + texturedir_offset + ")";
+            output += "\n_skinreference_count(" + skinreference_count + ")";
+            output += "\n_skinrfamily_count(" + skinrfamily_count + ")";
+            output += "\n_skinreference_index(" + skinreference_index + ")";
+            output += "\n_bodypart_count(" + bodypart_count + ")";
+            output += "\n_bodypart_offset(" + bodypart_offset + ")";
+            output += "\n_attachment_count(" + attachment_count + ")";
+            output += "\n_attachment_offset(" + attachment_offset + ")";
+            output += "\n_localnode_count(" + localnode_count + ")";
+            output += "\n_localnode_index(" + localnode_index + ")";
+            output += "\n_localnode_name_index(" + localnode_name_index + ")";
+            output += "\n_flexdesc_count(" + flexdesc_count + ")";
+            output += "\n_flexdesc_index(" + flexdesc_index + ")";
+            output += "\n_flexcontroller_count(" + flexcontroller_count + ")";
+            output += "\n_flexcontroller_index(" + flexcontroller_index + ")";
+            output += "\n_flexrules_count(" + flexrules_count + ")";
+            output += "\n_flexrules_index(" + flexrules_index + ")";
+            output += "\n_ikchain_count(" + ikchain_count + ")";
+            output += "\n_ikchain_index(" + ikchain_index + ")";
+            output += "\n_mouths_count(" + mouths_count + ")";
+            output += "\n_mouths_index(" + mouths_index + ")";
+            output += "\n_localposeparam_count(" + localposeparam_count + ")";
+            output += "\n_localposeparam_index(" + localposeparam_index + ")";
+            output += "\n_surfaceprop_index(" + surfaceprop_index + ")";
+            output += "\n_keyvalue_index(" + keyvalue_index + ")";
+            output += "\n_keyvalue_count(" + keyvalue_count + ")";
+            output += "\n_iklock_count(" + iklock_count + ")";
+            output += "\n_iklock_index(" + iklock_index + ")";
+            output += "\n_mass(" + mass + ")";
+            output += "\n_contents(" + contents + ")";
+            output += "\n_includemodel_count(" + includemodel_count + ")";
+            output += "\n_includemodel_index(" + includemodel_index + ")";
+            output += "\n_virtualModel(" + virtualModel + ")";
+            output += "\n_animblocks_name_index(" + animblocks_name_index + ")";
+            output += "\n_animblocks_count(" + animblocks_count + ")";
+            output += "\n_animblocks_index(" + animblocks_index + ")";
+            output += "\n_animblockModel(" + animblockModel + ")";
+            output += "\n_bonetablename_index(" + bonetablename_index + ")";
+            output += "\n_vertex_base(" + vertex_base + ")";
+            output += "\n_offset_base(" + offset_base + ")";
+            output += "\n_directionaldotproduct(" + directionaldotproduct + ")";
+            output += "\n_rootLod(" + rootLod + ")";
+            output += "\n_numAllowedRootLods(" + numAllowedRootLods + ")";
+            output += "\n_unused1(" + unused1 + ")";
+            output += "\n_unused2(" + unused2 + ")";
+            output += "\n_flexcontrollerui_count(" + flexcontrollerui_count + ")";
+            output += "\n_flexcontrollerui_index(" + flexcontrollerui_index + ")";
+            output += "\n_vertAnimFixedPointScale(" + vertAnimFixedPointScale + ")";
+            output += "\n_surfacePropLookup(" + surfacePropLookup + ")";
+            output += "\n_studiohdr2index(" + studiohdr2index + ")";
+            output += "\n_unused3(" + unused3 + ")";
+
+            return output;
+        }
 
         /**
          * As of this writing, the header is 408 bytes long in total

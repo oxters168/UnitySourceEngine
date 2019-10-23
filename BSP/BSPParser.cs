@@ -904,7 +904,7 @@ namespace UnitySourceEngine
                         float pitch = DataParser.ReadFloat(stream);
                         float roll = DataParser.ReadFloat(stream);
                         float yaw = DataParser.ReadFloat(stream);
-                        staticProps.staticPropInfo[i].Angles = new Vector3(pitch, yaw, roll); // orientation
+                        staticProps.staticPropInfo[i].Angles = new QAngle(pitch, roll, yaw); // orientation
 
                         staticProps.staticPropInfo[i].PropType = DataParser.ReadUShort(stream); // index into model name dictionary
                         staticProps.staticPropInfo[i].FirstLeaf = DataParser.ReadUShort(stream); // index into leaf array

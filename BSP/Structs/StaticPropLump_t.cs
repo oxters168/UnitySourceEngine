@@ -6,7 +6,7 @@ namespace UnitySourceEngine
     {
         // v4
         public Vector3 Origin; // origin
-        public Vector3 Angles; // orientation (pitch roll yaw)
+        public QAngle Angles; // orientation (pitch roll yaw)
         public ushort PropType; // index into model name dictionary
         public ushort FirstLeaf; // index into leaf array
         public ushort LeafCount;
@@ -34,5 +34,33 @@ namespace UnitySourceEngine
         public uint FlagsEx; // Further bitflags.
         // since v11
         public float UniformScale; // Prop scale
+
+        public override string ToString()
+        {
+            string output = "StaticPropInfo";
+            output += "\n_Origin(" + Origin + ")";
+            output += "\n_Angle(" + Angles + ")";
+            output += "\n_Prop (pe: " + PropType + ")";
+            output += "\n_First (af: " + FirstLeaf + ")";
+            output += "\n_Leaf (unt: " + LeafCount + ")";
+            output += "\n_Solid(" + Solid + ")";
+            output += "\n_Flags(" + Flags + ")";
+            output += "\n_Skin(" + Skin + ")";
+            output += "\n_FadeMinDist(" + FadeMinDist + ")";
+            output += "\n_FadeMaxDist(" + FadeMaxDist + ")";
+            output += "\n_LightingOrigin(" + LightingOrigin + ")";
+            output += "\n_ForcedFadeScale(" + ForcedFadeScale + ")";
+            output += "\n_MinDXLevel(" + MinDXLevel + ")";
+            output += "\n_MaxDXLevel(" + MaxDXLevel + ")";
+            output += "\n_MinCPULevel(" + MinCPULevel + ")";
+            output += "\n_MaxCPULevel(" + MaxCPULevel + ")";
+            output += "\n_MinGPULevel(" + MinGPULevel + ")";
+            output += "\n_MaxGPULevel(" + MaxGPULevel + ")";
+            output += "\n_DiffuseModulation(" + DiffuseModulation + ")";
+            //output += " Unknown: " + unknown + ")";
+            output += "\n_DisableX360(" + DisableX360 + ")";
+
+            return output;
+        }
     }
 }

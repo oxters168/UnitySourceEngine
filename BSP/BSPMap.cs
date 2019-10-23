@@ -512,6 +512,7 @@ namespace UnitySourceEngine
                 modelFullPath = modelFullPath.Substring(0, modelFullPath.LastIndexOf("."));
 
                 staticProps[i].model = SourceModel.GrabModel(bspParser, vpkParser, modelFullPath);
+                staticProps[i].debug = currentPropInfo.ToString();
 
                 staticProps[i].origin = currentPropInfo.Origin;
                 staticProps[i].angles = currentPropInfo.Angles;
@@ -574,10 +575,10 @@ namespace UnitySourceEngine
                 if (staticProps[i].model != null)
                 {
                     GameObject model = staticProps[i].model.InstantiateGameObject();
+                    model.name += "_" + staticProps[i].debug;
                     model.transform.SetParent(gameObject.transform);
                     model.transform.localPosition = staticProps[i].origin.FixNaN();
-                    model.transform.localRotation = Quaternion.Euler(staticProps[i].angles).FixNaN();
-                    //model.transform.Rotate(staticProps[i].angles, Space.World);
+                    model.transform.rotation = staticProps[i].angles.ToQuaternion();
                 }
                 totalItemsLoaded++;
                 onProgressChanged?.Invoke(PercentLoaded, currentMessage);
@@ -599,7 +600,8 @@ namespace UnitySourceEngine
     {
         public SourceModel model;
         public Vector3 origin;
-        public Vector3 angles;
+        public QAngle angles;
+        public string debug;
     }
     public class FaceMesh
     {
