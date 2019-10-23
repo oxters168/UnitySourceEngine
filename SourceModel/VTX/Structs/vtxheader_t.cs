@@ -13,7 +13,7 @@
         public int maxBonesPerVert;
 
         // must match checkSum in the .mdl
-        public long checkSum;
+        public int checkSum;
 
         public int numLODs; // garymcthack - this is also specified in ModelHeader_t and should match
 

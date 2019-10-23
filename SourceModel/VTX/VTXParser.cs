@@ -40,23 +40,30 @@ namespace UnitySourceEngine
             }
         }
 
+        public void ParseHeader(Stream stream, long fileOffset = 0)
+        {
+            fileOffsetPosition = fileOffset;
+
+            ReadSourceVtxHeader(stream);
+        }
         public void Parse(Stream stream, long fileOffset = 0)
         {
-            stream.Position = fileOffset;
             fileOffsetPosition = fileOffset;
-            try
-            {
-                ReadSourceVtxHeader(stream);
+
+            //try
+            //{
                 ReadSourceVtxBodyParts(stream);
-            }
-            catch (Exception e)
-            {
-                UnityEngine.Debug.LogError("VTXParser: " + e.ToString());
-            }
+            //}
+            //catch (Exception e)
+            //{
+            //    UnityEngine.Debug.LogError("VTXParser: " + e.ToString());
+            //}
         }
         private vtxheader_t ReadSourceVtxHeader(Stream stream)
         {
             header = new vtxheader_t();
+
+            stream.Position = fileOffsetPosition;
 
             header.version = DataParser.ReadInt(stream);
             header.vertCacheSize = DataParser.ReadInt(stream);

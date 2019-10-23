@@ -1084,6 +1084,54 @@ namespace UnitySourceEngine
         {
             return pakfiles[name];
         }
+        public void LoadPakFileAsStream(string name, Action<Stream, long, uint> streamActions)
+        {
+            try
+            {
+                var fileHeader = GetPakFileHeader(name);
+
+                if (!fileHeader.Equals(default(ZIP_FileHeader)))
+                {
+                    lump_t lump = lumps[40];
+
+                    #region Manual Extraction (As long as there is no compression happening i.e. compressionMethod = 0)
+                    bspStream.Position = lump.fileofs + fileHeader.relativeOffsetOfLocalHeader;
+
+                    ZIP_LocalFileHeader localFileHeader = new ZIP_LocalFileHeader();
+                    localFileHeader.signature = DataParser.ReadUInt(bspStream);
+                    localFileHeader.versionNeededToExtract = DataParser.ReadUShort(bspStream);
+                    localFileHeader.flags = DataParser.ReadUShort(bspStream);
+                    localFileHeader.compressionMethod = DataParser.ReadUShort(bspStream);
+                    localFileHeader.lastModifiedTime = DataParser.ReadUShort(bspStream);
+                    localFileHeader.lastModifiedDate = DataParser.ReadUShort(bspStream);
+                    localFileHeader.crc32 = DataParser.ReadUInt(bspStream);
+                    localFileHeader.compressedSize = DataParser.ReadUInt(bspStream);
+                    localFileHeader.uncompressedSize = DataParser.ReadUInt(bspStream);
+                    localFileHeader.fileNameLength = DataParser.ReadUShort(bspStream);
+                    localFileHeader.extraFieldLength = DataParser.ReadUShort(bspStream);
+
+                    Debug.Assert(localFileHeader.compressionMethod == 0, "BSPParser: Pak file compression method is not 0");
+                    Debug.Assert(localFileHeader.signature == GetPKID(3, 4), "BSPParser: Pakfile local header has incorrect signature expected PK34");
+
+                    bspStream.Position += localFileHeader.fileNameLength;
+                    //byte[] fileNameBytes = new byte[localFileHeader.fileNameLength];
+                    //bspStream.Read(fileNameBytes, 0, fileNameBytes.Length);
+                    //string fileName = System.Text.Encoding.ASCII.GetString(fileNameBytes);
+
+                    bspStream.Position += localFileHeader.extraFieldLength;
+
+                    streamActions(bspStream, bspStream.Position, localFileHeader.uncompressedSize);
+                    #endregion
+                }
+                else
+                    Debug.LogError("BSPParser: Could not find pak file " + name);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("BSPParser: " + e.ToString());
+            }
+
+        }
         public byte[] GetPakFile(string name)
         {
             byte[] pakfile = null;
@@ -1143,6 +1191,8 @@ namespace UnitySourceEngine
                     bspStream.Read(pakfile, 0, pakfile.Length);
                     #endregion
                 }
+                else
+                    Debug.LogError("BSPParser: Could not find pak file " + name);
             }
             catch(Exception e)
             {

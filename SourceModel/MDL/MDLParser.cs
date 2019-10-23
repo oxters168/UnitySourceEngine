@@ -69,26 +69,27 @@ namespace UnitySourceEngine
             }
         }
 
-        public void Parse(Stream stream, long offsetPosition = 0)
+        public void ParseHeader(Stream stream, long offsetPosition = 0)
         {
-            stream.Position = offsetPosition;
             fileBeginOffset = offsetPosition;
-            //if (data == null || data.Length <= 0)
-            //    throw new ArgumentNullException("No data provided");
 
-            //using (var stream = new MemoryStream(data))
-            //{
             ParseHeader1(stream);
             ParseHeader2(stream);
+        }
+        public void Parse(Stream stream, long offsetPosition = 0)
+        {
+            fileBeginOffset = offsetPosition;
+
             ParseBones(stream);
             ParseBodyParts(stream);
             ParseTextures(stream);
             ParseTexturePaths(stream);
-            //}
         }
         private studiohdr_t ParseHeader1(Stream stream)
         {
             header1 = new studiohdr_t();
+
+            stream.Position = fileBeginOffset;
 
             header1.id = DataParser.ReadInt(stream); // Model format ID, such as "IDST" (0x49 0x44 0x53 0x54)
             header1.version = DataParser.ReadInt(stream); // Format version number, such as 48 (0x30,0x00,0x00,0x00)

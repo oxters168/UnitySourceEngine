@@ -48,18 +48,24 @@ namespace UnitySourceEngine
             }
         }
 
-        public void Parse(Stream stream, int rootLod = 0, long fileOffset = 0)
+        public void ParseHeader(Stream stream, long fileOffset = 0)
         {
-            stream.Position = fileOffset;
             fileOffsetPosition = fileOffset;
 
             ParseHeader(stream);
+        }
+        public void Parse(Stream stream, int rootLod = 0, long fileOffset = 0)
+        {
+            fileOffsetPosition = fileOffset;
+
             ParseFixupTable(stream);
             ParseVertices(stream, rootLod);
         }
         private void ParseHeader(Stream stream)
         {
             header = new vertexFileHeader_t();
+
+            stream.Position = fileOffsetPosition;
 
             header.id = DataParser.ReadInt(stream);
             header.version = DataParser.ReadInt(stream); // MODEL_VERTEX_FILE_VERSION

@@ -88,38 +88,57 @@ namespace UnitySourceEngine
                                 try
                                 {
                                     if (bspParser.HasPakFile(mdlPath))
-                                    {
-                                        using (var stream = new MemoryStream(bspParser.GetPakFile(mdlPath)))
-                                            mdl.Parse(stream, 0);
-                                    }
+                                        bspParser.LoadPakFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.ParseHeader(stream, origOffset); });
                                     else
-                                        vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
+                                        vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.ParseHeader(stream, origOffset); });
 
                                     if (bspParser.HasPakFile(vvdPath))
+                                        bspParser.LoadPakFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.ParseHeader(stream, origOffset); });
+                                    else
+                                        vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.ParseHeader(stream, origOffset); });
+
+                                    int mdlChecksum = mdl.header1.checkSum;
+                                    int vvdChecksum = (int)vvd.header.checksum;
+
+                                    if (mdlChecksum == vvdChecksum)
                                     {
-                                        using (var stream = new MemoryStream(bspParser.GetPakFile(vvdPath)))
-                                            vvd.Parse(stream, mdl.header1.rootLod, 0);
+                                        if (bspParser.HasPakFile(vtxPath))
+                                            bspParser.LoadPakFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.ParseHeader(stream, origOffset); });
+                                        else
+                                            vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.ParseHeader(stream, origOffset); });
+
+                                        int vtxChecksum = vtx.header.checkSum;
+
+                                        if (mdlChecksum == vtxChecksum)
+                                        {
+                                            if (bspParser.HasPakFile(mdlPath))
+                                                bspParser.LoadPakFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
+                                            else
+                                                vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
+
+                                            if (bspParser.HasPakFile(vvdPath))
+                                                bspParser.LoadPakFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, mdl.header1.rootLod, origOffset); });
+                                            else
+                                                vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, mdl.header1.rootLod, origOffset); });
+
+                                            if (bspParser.HasPakFile(vtxPath))
+                                                bspParser.LoadPakFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
+                                            else
+                                                vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
+
+                                            version = mdl.header1.version;
+                                            id = mdl.header1.id;
+
+                                            if (mdl.bodyParts != null)
+                                                ReadFaceMeshes(mdl, vvd, vtx, bspParser, vpkParser);
+                                            else
+                                                Debug.LogError("SourceModel: Could not find body parts of " + modelPath);
+                                        }
+                                        else
+                                            Debug.LogError("SourceModel: MDL and VTX checksums don't match (" + mdlChecksum + " != " + vtxChecksum + ") vtxver(" + vtx.header.version + ") for " + modelPath);
                                     }
                                     else
-                                        vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, mdl.header1.rootLod, origOffset); });
-
-                                    if (bspParser.HasPakFile(vtxPath))
-                                    {
-                                        using (var stream = new MemoryStream(bspParser.GetPakFile(vtxPath)))
-                                            vtx.Parse(stream, 0);
-                                    }
-                                    else
-                                        vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
-
-                                    version = mdl.header1.version;
-                                    id = mdl.header1.id;
-
-                                    if (mdl.bodyParts != null)
-                                    {
-                                        ReadFaceMeshes(mdl, vvd, vtx, bspParser, vpkParser);
-                                    }
-                                    else
-                                        Debug.LogError("SourceModel: Could not find body parts of " + modelPath);
+                                        Debug.LogError("SourceModel: MDL and VVD checksums don't match (" + mdlChecksum + " != " + vvdChecksum + ") for " + modelPath);
                                 }
                                 catch (System.Exception e)
                                 {
