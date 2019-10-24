@@ -72,14 +72,14 @@ namespace UnitySourceEngine
                 string vvdPath = modelPath + ".vvd";
                 string vtxPath = modelPath + ".vtx";
 
-                if (bspParser.HasPakFile(mdlPath) || vpkParser.FileExists(mdlPath))
+                if ((bspParser != null && bspParser.HasPakFile(mdlPath)) || (vpkParser != null && vpkParser.FileExists(mdlPath)))
                 {
-                    if (bspParser.HasPakFile(vvdPath) || vpkParser.FileExists(vvdPath))
+                    if ((bspParser != null && bspParser.HasPakFile(vvdPath)) || (vpkParser != null && vpkParser.FileExists(vvdPath)))
                     {
-                        if (!bspParser.HasPakFile(vtxPath) && !vpkParser.FileExists(vtxPath))
+                        if ((bspParser == null || !bspParser.HasPakFile(vtxPath)) && (vpkParser == null || !vpkParser.FileExists(vtxPath)))
                             vtxPath = modelPath + ".dx90.vtx";
 
-                        if (bspParser.HasPakFile(vtxPath) || vpkParser.FileExists(vtxPath))
+                        if ((bspParser != null && bspParser.HasPakFile(vtxPath)) || (vpkParser != null && vpkParser.FileExists(vtxPath)))
                         {
                             using (MDLParser mdl = new MDLParser())
                             using (VVDParser vvd = new VVDParser())
@@ -87,12 +87,12 @@ namespace UnitySourceEngine
                             {
                                 try
                                 {
-                                    if (bspParser.HasPakFile(mdlPath))
+                                    if (bspParser != null && bspParser.HasPakFile(mdlPath))
                                         bspParser.LoadPakFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.ParseHeader(stream, origOffset); });
                                     else
                                         vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.ParseHeader(stream, origOffset); });
 
-                                    if (bspParser.HasPakFile(vvdPath))
+                                    if (bspParser != null && bspParser.HasPakFile(vvdPath))
                                         bspParser.LoadPakFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.ParseHeader(stream, origOffset); });
                                     else
                                         vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.ParseHeader(stream, origOffset); });
@@ -102,7 +102,7 @@ namespace UnitySourceEngine
 
                                     if (mdlChecksum == vvdChecksum)
                                     {
-                                        if (bspParser.HasPakFile(vtxPath))
+                                        if (bspParser != null && bspParser.HasPakFile(vtxPath))
                                             bspParser.LoadPakFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.ParseHeader(stream, origOffset); });
                                         else
                                             vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.ParseHeader(stream, origOffset); });
@@ -111,17 +111,17 @@ namespace UnitySourceEngine
 
                                         if (mdlChecksum == vtxChecksum)
                                         {
-                                            if (bspParser.HasPakFile(mdlPath))
+                                            if (bspParser != null && bspParser.HasPakFile(mdlPath))
                                                 bspParser.LoadPakFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
                                             else
                                                 vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
 
-                                            if (bspParser.HasPakFile(vvdPath))
+                                            if (bspParser != null && bspParser.HasPakFile(vvdPath))
                                                 bspParser.LoadPakFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, mdl.header1.rootLod, origOffset); });
                                             else
                                                 vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, mdl.header1.rootLod, origOffset); });
 
-                                            if (bspParser.HasPakFile(vtxPath))
+                                            if (bspParser != null && bspParser.HasPakFile(vtxPath))
                                                 bspParser.LoadPakFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
                                             else
                                                 vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
