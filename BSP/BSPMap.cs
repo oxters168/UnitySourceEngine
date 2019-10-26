@@ -19,13 +19,11 @@ namespace UnitySourceEngine
         #region Map Variables
         public string mapName { get; private set; }
         public string mapDir { get; private set; }
-        public static bool combineMeshesWithSameTextures;
-        //public static bool excludeTextures;
+        public static bool combineMeshesWithSameTexture;
         public static bool excludeModels;
         public static bool excludeMapFaces;
         public static bool applyLightmaps;
         public static string vpkLoc;
-        //public static Material mapMaterial;
         public GameObject gameObject { get; private set; }
 
         //private Material noTexture;
@@ -255,7 +253,7 @@ namespace UnitySourceEngine
                     currentFace.faceName = textureLocation;
                     currentFace.material = VMTData.GrabVMT(bspParser, vpkParser, textureLocation);
                     currentFace.meshData = MakeFace(bspParser, face);
-                    AddFaceMesh(currentFace, combineMeshesWithSameTextures);
+                    AddFaceMesh(currentFace, combineMeshesWithSameTexture);
                 }
 
                 totalItemsLoaded++;

@@ -30,7 +30,7 @@ public class SourceMapLoader : MonoBehaviour
         BSPMap.vpkLoc = vpkLoc;
         BSPMap map = new BSPMap(mapLoc);
 
-        BSPMap.combineMeshesWithSameTextures = combineMeshesWithSameTextures;
+        BSPMap.combineMeshesWithSameTexture = combineMeshesWithSameTextures;
         BSPMap.excludeMapFaces = excludeMapFaces;
         BSPMap.excludeModels = excludeModels;
         SourceTexture.averageTextures = flatTextures;
