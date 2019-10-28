@@ -260,7 +260,7 @@ namespace UnitySourceEngine
                 onProgressChanged?.Invoke(PercentLoaded, currentMessage);
             }
         }
-        public MeshData MakeFace(BSPParser bspParser, dface_t face)
+        public MeshHelpers.MeshData MakeFace(BSPParser bspParser, dface_t face)
         {
             #region Get all vertices of face
             List<Vector3> surfaceVertices = new List<Vector3>();
@@ -456,7 +456,7 @@ namespace UnitySourceEngine
             #endregion
 
             #region Organize Mesh Data
-            MeshData meshData = new MeshData();
+            MeshHelpers.MeshData meshData = new MeshHelpers.MeshData();
             meshData.vertices = surfaceVertices.ToArray();
             meshData.triangles = triangleIndices.ToArray();
             meshData.normals = normals.ToArray();
@@ -607,7 +607,7 @@ namespace UnitySourceEngine
         public Vector3 relativePosition;
         public Vector3 relativeRotation;
 
-        public MeshData meshData;
+        public MeshHelpers.MeshData meshData;
         //public Vector3 s, t;
         //public float xOffset, yOffset;
         public texflags textureFlag;
@@ -619,7 +619,7 @@ namespace UnitySourceEngine
         {
             relativePosition = Vector3.zero;
             relativeRotation = Vector3.zero;
-            meshData = new MeshData();
+            meshData = new MeshHelpers.MeshData();
             textureFlag = texflags.SURF_NODRAW;
         }
         public void Dispose()
@@ -640,99 +640,6 @@ namespace UnitySourceEngine
             }
 
             return meshData.Append(other.meshData, position, Quaternion.Euler(rotation), Vector3.one);
-        }
-    }
-    public class MeshData
-    {
-        public static readonly int MAX_VERTICES = 65534;
-
-        private Mesh mesh;
-        public Vector3[] vertices = new Vector3[0];
-        public int[] triangles = new int[0];
-        public Vector3[] normals = new Vector3[0];
-        public Vector2[] uv = new Vector2[0];
-        public Vector2[] uv2 = new Vector2[0];
-        public Vector2[] uv3 = new Vector2[0];
-        public Vector2[] uv4 = new Vector2[0];
-
-        public void Dispose()
-        {
-            if (mesh != null)
-                UnityEngine.Object.Destroy(mesh);
-            mesh = null;
-
-            vertices = null;
-            triangles = null;
-            normals = null;
-            uv = null;
-            uv2 = null;
-            uv3 = null;
-            uv4 = null;
-        }
-
-        public bool Append(MeshData other, Vector3 position, Quaternion rotation, Vector3 scale)
-        {
-            if (other != null && vertices.Length + other.vertices.Length < MAX_VERTICES)
-            {
-                Vector3[] manipulatedVertices = other.vertices.ManipulateVertices(position, rotation, scale);
-
-                int[] correctedTriangles = new int[other.triangles.Length];
-                for (int i = 0; i < correctedTriangles.Length; i++)
-                    correctedTriangles[i] = other.triangles[i] + vertices.Length;
-
-                vertices = vertices.ToArray().Concat(manipulatedVertices).ToArray();
-                triangles = triangles.ToArray().Concat(correctedTriangles).ToArray();
-                normals = normals.ToArray().Concat(other.normals).ToArray();
-                uv = uv.ToArray().Concat(other.uv).ToArray();
-                uv2 = uv2.ToArray().Concat(other.uv2).ToArray();
-                uv3 = uv3.ToArray().Concat(other.uv3).ToArray();
-                uv4 = uv4.ToArray().Concat(other.uv4).ToArray();
-                //vertices = DataParser.Merge(vertices, manipulatedVertices);
-                //triangles = DataParser.Merge(triangles, correctedTriangles);
-                //normals = DataParser.Merge(normals, other.normals);
-                //uv = DataParser.Merge(uv, other.uv);
-                //uv2 = DataParser.Merge(uv2, other.uv2);
-                //uv3 = DataParser.Merge(uv3, other.uv3);
-                //uv4 = DataParser.Merge(uv4, other.uv4);
-                return true;
-            }
-            return false;
-        }
-
-        public Mesh GetMesh()
-        {
-            if (mesh == null)
-            {
-                mesh = new Mesh();
-                mesh.name = "Custom Mesh";
-            }
-
-            mesh.Clear();
-            mesh.vertices = vertices;
-            mesh.triangles = triangles;
-            if (uv.Length > 0)
-                mesh.uv = uv;
-            if (uv2.Length > 0)
-                mesh.uv2 = uv2;
-            if (uv3.Length > 0)
-                mesh.uv3 = uv3;
-            if (uv4.Length > 0)
-                mesh.uv4 = uv4;
-            if (normals.Length == vertices.Length)
-                mesh.normals = normals;
-            else
-                mesh.RecalculateNormals();
-
-            return mesh;
-        }
-        public IEnumerator DebugNormals()
-        {
-            for (int i = 0; i < vertices.Length; i++)
-            {
-                Debug.DrawRay(vertices[i], normals[i], Color.blue, 10000);
-                if (i % 100 == 0)
-                    yield return null;
-            }
         }
     }
 }

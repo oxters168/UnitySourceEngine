@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
-using System.IO;
+using UnityHelpers;
 
 namespace UnitySourceEngine
 {
@@ -8,6 +8,8 @@ namespace UnitySourceEngine
     {
         private static Dictionary<string, SourceModel> loadedModels = new Dictionary<string, SourceModel>();
         private static GameObject staticPropLibrary;
+
+        public static float decimationPercent = 0;
 
         public string modelPath { get; private set; }
 
@@ -259,11 +261,26 @@ namespace UnitySourceEngine
                             if (vvd.header.numFixups > 0)
                                 Debug.LogWarning("SourceModel: " + vvd.header.numFixups + " fixups found for " + modelPath);
 
-                            MeshData meshData = new MeshData();
-                            meshData.vertices = vertices;
-                            meshData.triangles = triangles;
-                            meshData.normals = normals;
-                            meshData.uv = uv;
+                            MeshHelpers.MeshData meshData;
+
+                            //var outcome = MeshHelpers.GenerateConvexHull(vertices, out meshData, 0.2);
+                            //if (outcome != MIConvexHull.ConvexHullCreationResultOutcome.Success)
+                            //    Debug.LogError("SourceModel: Convex hull error " + outcome + " for " + modelPath);
+
+                            if (decimationPercent > 0)
+                            {
+                                meshData = MeshHelpers.DecimateByTriangleCount(vertices, triangles, normals, 1 - decimationPercent);
+                                meshData.uv = new Vector2[meshData.vertices.Length];
+                                System.Array.Copy(uv, meshData.uv, meshData.vertices.Length);
+                            }
+                            else
+                            {
+                                meshData = new MeshHelpers.MeshData();
+                                meshData.vertices = vertices;
+                                meshData.triangles = triangles;
+                                meshData.normals = normals;
+                                meshData.uv = uv;
+                            }
 
                             currentFace.meshData = meshData;
 
