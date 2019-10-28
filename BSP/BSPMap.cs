@@ -20,18 +20,16 @@ namespace UnitySourceEngine
         public string mapName { get; private set; }
         public string mapDir { get; private set; }
         public static bool combineMeshesWithSameTexture;
-        public static bool excludeModels;
-        public static bool excludeMapFaces;
+        private static float modelLoadPercent = 1;
+        public static float ModelLoadPercent { get { return Mathf.Clamp01(modelLoadPercent); } set { modelLoadPercent = value; } }
+        private static float faceLoadPercent = 1;
+        public static float FaceLoadPercent { get { return Mathf.Clamp01(faceLoadPercent); } set { faceLoadPercent = value; } }
         public static bool applyLightmaps;
         public static string vpkLoc;
         public GameObject gameObject { get; private set; }
 
-        //private Material noTexture;
-        //private Dictionary<SourceTexture, Material> materialsCreated = new Dictionary<SourceTexture, Material>();
-
         private List<FaceMesh> allFaces = new List<FaceMesh>();
         private StaticPropData[] staticProps;
-        //private SourceModel[] staticProps;
         public Dictionary<int, SourceLightmap> lightmaps; //Maps from face lightofs to lightmap
         #endregion
 
@@ -109,7 +107,7 @@ namespace UnitySourceEngine
                 //      added by other dependencies, those archives will not be added. That would require us to read the materials and models to get what textures they use.
 
                 #region Map face textures dependencies
-                if (!excludeMapFaces)
+                if (FaceLoadPercent > 0)
                 {
                     foreach (dface_t face in bspParser.faces)
                     {
@@ -135,7 +133,7 @@ namespace UnitySourceEngine
                 #endregion
 
                 #region Model dependencies
-                if (!excludeModels)
+                if (ModelLoadPercent > 0)
                 {
                     for (int i = 0; i < bspParser.staticProps.staticPropInfo.Length; i++)
                     {
@@ -185,20 +183,19 @@ namespace UnitySourceEngine
                 //if (!cancelToken.IsCancellationRequested)
                 //    lightmaps = bspParser.GetLightmaps(cancelToken);
 
-                int facesCount = excludeMapFaces ? 0 : bspParser.faces.Length;
-                int propsCount = excludeModels ? 0 : bspParser.staticProps.staticPropInfo.Length;
+                int facesCount = Mathf.RoundToInt(bspParser.faces.Length * FaceLoadPercent);
+                int propsCount = Mathf.RoundToInt(bspParser.staticProps.staticPropInfo.Length * ModelLoadPercent);
                 totalItemsToLoad = facesCount + propsCount;
 
                 bool validVPK = vpkParser.IsValid();
 
                 currentMessage = "Parsing Faces";
                 onProgressChanged?.Invoke(PercentLoaded, currentMessage);
-                if (!excludeMapFaces)
-                    ReadFaces(bspParser, validVPK ? vpkParser : null, cancelToken, onProgressChanged);
+                ReadFaces(bspParser, validVPK ? vpkParser : null, cancelToken, onProgressChanged);
 
                 currentMessage = "Loading Static Props";
                 onProgressChanged?.Invoke(PercentLoaded, currentMessage);
-                if (validVPK && !excludeModels)
+                if (validVPK)
                     ReadStaticProps(bspParser, vpkParser, cancelToken, onProgressChanged);
             }
 
@@ -234,7 +231,7 @@ namespace UnitySourceEngine
         }
         private void ReadFaces(BSPParser bspParser, VPKParser vpkParser, CancellationToken cancelToken, Action<float, string> onProgressChanged = null)
         {
-            for (int i = 0; i < bspParser.faces.Length; i++)
+            for (int i = 0; i < Mathf.RoundToInt(bspParser.faces.Length * FaceLoadPercent); i++)
             {
                 if (cancelToken.IsCancellationRequested)
                     return;
@@ -497,8 +494,9 @@ namespace UnitySourceEngine
 
         private void ReadStaticProps(BSPParser bspParser, VPKParser vpkParser, CancellationToken cancelToken, Action<float, string> onProgressChanged = null)
         {
-            staticProps = new StaticPropData[bspParser.staticProps.staticPropInfo.Length];
-            for (int i = 0; i < bspParser.staticProps.staticPropInfo.Length; i++)
+            int staticPropCount = Mathf.RoundToInt(bspParser.staticProps.staticPropInfo.Length * ModelLoadPercent);
+            staticProps = new StaticPropData[staticPropCount];
+            for (int i = 0; i < staticPropCount; i++)
             {
                 if (cancelToken.IsCancellationRequested)
                     return;

@@ -7,8 +7,10 @@ public class SourceMapLoader : MonoBehaviour
     public string mapPath = @"C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\csgo\maps\ar_monastery.bsp";
     [Space(10)]
     public bool combineMeshesWithSameTextures = true;
-    public bool excludeMapFaces = false;
-    public bool excludeModels = false;
+    [Range(0, 1)]
+    public float faceLoadPercent = 1;
+    [Range(0, 1)]
+    public float modelLoadPercent = 1;
     public bool flatTextures = false;
     public int maxTextureSize = 2048;
 
@@ -16,7 +18,7 @@ public class SourceMapLoader : MonoBehaviour
 
     private void Start()
     {
-        map = LoadMap(vpkPath, mapPath, combineMeshesWithSameTextures, excludeMapFaces, excludeModels, flatTextures, maxTextureSize);
+        map = LoadMap(vpkPath, mapPath, combineMeshesWithSameTextures, faceLoadPercent, modelLoadPercent, flatTextures, maxTextureSize);
     }
     private void OnDestroy()
     {
@@ -25,14 +27,14 @@ public class SourceMapLoader : MonoBehaviour
         map = null;
     }
 
-    public BSPMap LoadMap(string vpkLoc, string mapLoc, bool combineMeshesWithSameTextures = true, bool excludeMapFaces = false, bool excludeModels = false, bool flatTextures = false, int maxTextureSize = 2048)
+    public BSPMap LoadMap(string vpkLoc, string mapLoc, bool combineMeshesWithSameTextures = true, float faceLoadPercent = 1, float modelLoadPercent = 1, bool flatTextures = false, int maxTextureSize = 2048)
     {
         BSPMap.vpkLoc = vpkLoc;
         BSPMap map = new BSPMap(mapLoc);
 
         BSPMap.combineMeshesWithSameTexture = combineMeshesWithSameTextures;
-        BSPMap.excludeMapFaces = excludeMapFaces;
-        BSPMap.excludeModels = excludeModels;
+        BSPMap.FaceLoadPercent = faceLoadPercent;
+        BSPMap.ModelLoadPercent = modelLoadPercent;
         SourceTexture.averageTextures = flatTextures;
         SourceTexture.maxTextureSize = maxTextureSize;
 
