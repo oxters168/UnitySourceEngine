@@ -173,8 +173,8 @@ namespace UnitySourceEngine
             isParsed = false;
             isParsing = true;
 
-            currentMessage = "Reading BSP Data";
-            onProgressChanged?.Invoke(PercentLoaded, currentMessage);
+            //currentMessage = "Reading BSP Data";
+            //onProgressChanged?.Invoke(PercentLoaded, currentMessage);
 
             using (VPKParser vpkParser = new VPKParser(vpkLoc))
             using (BSPParser bspParser = new BSPParser(Path.Combine(mapDir, mapName + ".bsp")))
@@ -189,11 +189,11 @@ namespace UnitySourceEngine
 
                 bool validVPK = vpkParser.IsValid();
 
-                currentMessage = "Parsing Faces";
+                currentMessage = "Reading Map Faces";
                 onProgressChanged?.Invoke(PercentLoaded, currentMessage);
                 ReadFaces(bspParser, validVPK ? vpkParser : null, cancelToken, onProgressChanged);
 
-                currentMessage = "Loading Static Props";
+                currentMessage = "Reading Map Models";
                 onProgressChanged?.Invoke(PercentLoaded, currentMessage);
                 if (validVPK)
                     ReadStaticProps(bspParser, vpkParser, cancelToken, onProgressChanged);
@@ -524,6 +524,8 @@ namespace UnitySourceEngine
             isBuilding = true;
 
             totalItemsLoaded = 0;
+
+            currentMessage = "Building GameObject";
 
             gameObject = new GameObject(mapName);
             gameObject.SetActive(false);
