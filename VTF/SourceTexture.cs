@@ -332,14 +332,10 @@ namespace UnitySourceEngine
                             mipmapBufferOffset += (int)ComputeMipmapSize(vtfHeader.width, vtfHeader.height, vtfHeader.depth, i, vtfHeader.highResImageFormat);
                         }
                         stream.Position = vtfBytePosition + imageBufferOffset + mipmapBufferOffset;
-                        byte[] imageData = new byte[imageBufferSize];
-                        stream.Read(imageData, 0, imageData.Length);
-                        //DataParser.ReadBytes(ms, imageBufferOffset + mipmapBufferOffset, imageBufferSize);
 
-                        extracted = DecompressImage(imageData, vtfHeader.width, vtfHeader.height, vtfHeader.highResImageFormat);
+                        extracted = DecompressImage(stream, vtfHeader.width, vtfHeader.height, vtfHeader.highResImageFormat);
                         width = vtfHeader.width;
                         height = vtfHeader.height;
-                        imageData = null;
                     }
                     else
                         Debug.LogError("SourceTexture: Image format given was none");
@@ -352,23 +348,28 @@ namespace UnitySourceEngine
 
             return extracted;
         }
-        private static Color[] DecompressImage(byte[] data, ushort width, ushort height, VTFImageFormat imageFormat)
+        private static Color[] DecompressImage(Stream data, ushort width, ushort height, VTFImageFormat imageFormat)
         {
             Color[] vtfColors = new Color[width * height];
 
+            Texture2DHelpers.TextureFormat format;
             if (imageFormat == VTFImageFormat.IMAGE_FORMAT_DXT1 || imageFormat == VTFImageFormat.IMAGE_FORMAT_DXT1_ONEBITALPHA)
-                vtfColors = Texture2DHelpers.DecompressDXT1(data, width, height);
+                format = Texture2DHelpers.TextureFormat.DXT1;
             else if (imageFormat == VTFImageFormat.IMAGE_FORMAT_DXT3)
-                vtfColors = Texture2DHelpers.DecompressDXT3(data, width, height);
+                format = Texture2DHelpers.TextureFormat.DXT3;
             else if (imageFormat == VTFImageFormat.IMAGE_FORMAT_DXT5)
-                vtfColors = Texture2DHelpers.DecompressDXT5(data, width, height);
+                format = Texture2DHelpers.TextureFormat.DXT5;
             else if (imageFormat == VTFImageFormat.IMAGE_FORMAT_BGR888)
-                vtfColors = Texture2DHelpers.DecompressBGR888(data, width, height);
+                format = Texture2DHelpers.TextureFormat.BGR888;
             else if (imageFormat == VTFImageFormat.IMAGE_FORMAT_BGRA8888)
-                vtfColors = Texture2DHelpers.DecompressBGRA8888(data, width, height);
+                format = Texture2DHelpers.TextureFormat.BGRA8888;
             else
-                Debug.LogError("SourceTexture: Unsupported format " + imageFormat);
+            {
+                format = Texture2DHelpers.TextureFormat.BGR888;
+                Debug.LogError("SourceTexture: Unsupported format " + imageFormat + ", will read as " + format);
+            }
 
+            vtfColors = Texture2DHelpers.DecompressRawBytes(data, width, height, format);
             Texture2DHelpers.FlipVertical(vtfColors, width, height);
 
             return vtfColors;
