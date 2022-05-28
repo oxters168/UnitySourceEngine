@@ -553,7 +553,7 @@ namespace UnitySourceEngine
                 faceGO.transform.parent = gameObject.transform;
                 faceGO.transform.position = face.relativePosition;
                 faceGO.transform.rotation = Quaternion.Euler(face.relativeRotation);
-                faceGO.AddComponent<MeshFilter>().mesh = face.meshData.GetMesh();
+                faceGO.AddComponent<MeshFilter>().mesh = face.meshData.GenerateMesh();
                 var faceRenderer = faceGO.AddComponent<MeshRenderer>();
                 faceRenderer.material = face.material?.GetMaterial();
                 /*if (lightmaps.ContainsKey(face.lightmapKey))

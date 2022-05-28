@@ -1,0 +1,17 @@
+{
+    "name": "UnitySourceEngine.Examples",
+    "rootNamespace": "",
+    "references": [
+        "GUID:5972720a3413bb14295e69934eb7f1c7",
+        "GUID:5fd04100c28e6474fa7c7b6df68bb52f"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

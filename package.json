@@ -1,0 +1,12 @@
+{
+    "name": "com.oxgames.unitysourceengine",
+    "version": "1.0.0",
+    "displayName": "Unity Source Engine",
+    "description": "A port of the source engine for unity",
+    "unity": "2018.1",
+    "author": {
+      "name": "Ox Games",
+      "email": "oxgamesco@gmail.com",
+      "url": "https://oxgames.co"
+    }
+  }

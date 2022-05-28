@@ -326,7 +326,7 @@ namespace UnitySourceEngine
                     GameObject meshRepresentation = new GameObject(faceMesh.faceName);
                     meshRepresentation.transform.parent = modelPrefab.transform;
 
-                    Mesh mesh = faceMesh.meshData.GetMesh();
+                    Mesh mesh = faceMesh.meshData.GenerateMesh();
 
                     MeshFilter mesher = meshRepresentation.AddComponent<MeshFilter>();
                     mesher.sharedMesh = mesh;
