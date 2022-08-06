@@ -1,17 +1,22 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 using UnityHelpers;
+using System.Threading;
 
 namespace UnitySourceEngine
 {
     public class SourceModel
     {
-        private static Dictionary<string, SourceModel> loadedModels = new Dictionary<string, SourceModel>();
+        // private static Dictionary<string, SourceModel> loadedModels = new Dictionary<string, SourceModel>(); //Not a good way to cache models, would be better to do this on a per app level
         private static GameObject staticPropLibrary;
 
         public static float decimationPercent = 0;
 
+        public string currentMessage { get; private set; }
+        public float PercentLoaded { get; private set; }
+
         public string modelPath { get; private set; }
+        public string key { get { return KeyFromPath(modelPath); } }
 
         public int version { get; private set; }
         public int id { get; private set; }
@@ -19,24 +24,25 @@ namespace UnitySourceEngine
         private GameObject modelPrefab;
         private List<FaceMesh> faces = new List<FaceMesh>();
 
-        private SourceModel(string key)
+        public SourceModel(string _modelPath)
         {
-            modelPath = key;
+            modelPath = _modelPath.Replace("\\", "/");//.ToLower();
+            // modelPath = modelPath.Substring(0, modelPath.LastIndexOf(System.IO.Path.GetExtension(modelPath)));
 
-            loadedModels.Add(modelPath, this);
+            // loadedModels.Add(modelPath, this);
         }
 
-        public static void ClearCache()
-        {
-            foreach (var modPair in loadedModels)
-                modPair.Value.Dispose();
-            loadedModels.Clear();
-            loadedModels = new Dictionary<string, SourceModel>();
-        }
+        // public static void ClearCache()
+        // {
+        //     foreach (var modPair in loadedModels)
+        //         modPair.Value.Dispose();
+        //     loadedModels.Clear();
+        //     loadedModels = new Dictionary<string, SourceModel>();
+        // }
         public void Dispose()
         {
-            if (loadedModels != null && loadedModels.ContainsKey(modelPath))
-                loadedModels.Remove(modelPath);
+            // if (loadedModels != null && loadedModels.ContainsKey(modelPath))
+            //     loadedModels.Remove(modelPath);
 
             if (faces != null)
                 foreach (FaceMesh face in faces)
@@ -48,25 +54,30 @@ namespace UnitySourceEngine
             modelPrefab = null;
         }
 
-        public static SourceModel GrabModel(BSPParser bspParser, VPKParser vpkParser, string rawPath)
+        public static string KeyFromPath(string path)
         {
-            SourceModel model = null;
-
-            string fixedLocation = rawPath.Replace("\\", "/").ToLower();
-
-            if (loadedModels.ContainsKey(fixedLocation))
-            {
-                model = loadedModels[fixedLocation];
-            }
-            else
-            {
-                model = new SourceModel(fixedLocation);
-                model.Parse(bspParser, vpkParser);
-            }
-
-            return model;
+            return path.Replace("\\", "/").ToLower();
         }
-        private void Parse(BSPParser bspParser, VPKParser vpkParser)
+
+        // public static SourceModel GrabModel(BSPParser bspParser, VPKParser vpkParser, string rawPath)
+        // {
+        //     SourceModel model = null;
+
+        //     string fixedLocation = rawPath.Replace("\\", "/").ToLower();
+
+        //     if (loadedModels.ContainsKey(fixedLocation))
+        //     {
+        //         model = loadedModels[fixedLocation];
+        //     }
+        //     else
+        //     {
+        //         model = new SourceModel(fixedLocation);
+        //         model.Parse(bspParser, vpkParser);
+        //     }
+
+        //     return model;
+        // }
+        public void Parse(BSPParser bspParser, VPKParser vpkParser, CancellationToken? cancelToken = null, System.Action onFinished = null)
         {
             if (vpkParser != null)
             {
@@ -89,52 +100,66 @@ namespace UnitySourceEngine
                             {
                                 try
                                 {
-                                    if (bspParser != null && bspParser.HasPakFile(mdlPath))
+                                    currentMessage = "Reading MDL header";
+                                    if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(mdlPath))
                                         bspParser.LoadPakFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.ParseHeader(stream, origOffset); });
-                                    else
+                                    else if (!(cancelToken?.IsCancellationRequested ?? false))
                                         vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.ParseHeader(stream, origOffset); });
+                                    PercentLoaded = 1f / 7;
 
-                                    if (bspParser != null && bspParser.HasPakFile(vvdPath))
+                                    currentMessage = "Reading VVD header";
+                                    if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(vvdPath))
                                         bspParser.LoadPakFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.ParseHeader(stream, origOffset); });
-                                    else
+                                    else if (!(cancelToken?.IsCancellationRequested ?? false))
                                         vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.ParseHeader(stream, origOffset); });
+                                    PercentLoaded = 2f / 7;
 
                                     int mdlChecksum = mdl.header1.checkSum;
                                     int vvdChecksum = (int)vvd.header.checksum;
 
                                     if (mdlChecksum == vvdChecksum)
                                     {
-                                        if (bspParser != null && bspParser.HasPakFile(vtxPath))
+                                        currentMessage = "Reading VTX header";
+                                        if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(vtxPath))
                                             bspParser.LoadPakFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.ParseHeader(stream, origOffset); });
-                                        else
+                                        else if (!(cancelToken?.IsCancellationRequested ?? false))
                                             vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.ParseHeader(stream, origOffset); });
+                                        PercentLoaded = 3f / 7;
 
                                         int vtxChecksum = vtx.header.checkSum;
 
                                         if (mdlChecksum == vtxChecksum)
                                         {
-                                            if (bspParser != null && bspParser.HasPakFile(mdlPath))
+                                            currentMessage = "Parsing MDL";
+                                            if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(mdlPath))
                                                 bspParser.LoadPakFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
-                                            else
+                                            else if (!(cancelToken?.IsCancellationRequested ?? false))
                                                 vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
+                                            PercentLoaded = 4f / 7;
 
-                                            if (bspParser != null && bspParser.HasPakFile(vvdPath))
+                                            currentMessage = "Parsing VVD";
+                                            if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(vvdPath))
                                                 bspParser.LoadPakFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, mdl.header1.rootLod, origOffset); });
-                                            else
+                                            else if (!(cancelToken?.IsCancellationRequested ?? false))
                                                 vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, mdl.header1.rootLod, origOffset); });
+                                            PercentLoaded = 5f / 7;
 
-                                            if (bspParser != null && bspParser.HasPakFile(vtxPath))
+                                            currentMessage = "Parsing VTX";
+                                            if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(vtxPath))
                                                 bspParser.LoadPakFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
-                                            else
+                                            else if (!(cancelToken?.IsCancellationRequested ?? false))
                                                 vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
+                                            PercentLoaded = 6f / 7;
 
                                             version = mdl.header1.version;
                                             id = mdl.header1.id;
 
-                                            if (mdl.bodyParts != null)
+                                            currentMessage = "Converting to mesh";
+                                            if (!(cancelToken?.IsCancellationRequested ?? false) && mdl.bodyParts != null)
                                                 ReadFaceMeshes(mdl, vvd, vtx, bspParser, vpkParser);
-                                            else
+                                            else if (!(cancelToken?.IsCancellationRequested ?? false))
                                                 Debug.LogError("SourceModel: Could not find body parts of " + modelPath);
+                                            PercentLoaded = 1;
                                         }
                                         else
                                             Debug.LogError("SourceModel: MDL and VTX checksums don't match (" + mdlChecksum + " != " + vtxChecksum + ") vtxver(" + vtx.header.version + ") for " + modelPath);
@@ -159,6 +184,8 @@ namespace UnitySourceEngine
             }
             else
                 Debug.LogError("SourceModel: VPK parser is null");
+
+            onFinished?.Invoke();
         }
         private void ReadFaceMeshes(MDLParser mdl, VVDParser vvd, VTXParser vtx, BSPParser bspParser, VPKParser vpkParser)
         {

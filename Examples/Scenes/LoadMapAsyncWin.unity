@@ -808,7 +808,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   statusLabel: {fileID: 616414650}
   loadingBar: {fileID: 134528250}
-  vpkPath: C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\csgo
   mapPath: C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\csgo\maps\ar_monastery.bsp
   combineMeshesWithSameTextures: 1
   faceLoadPercent: 1
@@ -823,7 +822,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1277443852}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 91.78875, y: -111.52125, z: 89.999985}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}

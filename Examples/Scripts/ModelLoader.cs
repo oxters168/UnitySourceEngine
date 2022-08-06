@@ -5,7 +5,7 @@ namespace UnitySourceEngine.Examples
     public class ModelLoader : MonoBehaviour
     {
         public string vpkPath = @"C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\csgo";
-        public string modelPath = "models/weapons/v_rif_m4a1.mdl";
+        public string modelPath = "models/weapons/v_rif_m4a1";
         [Space(10)]
         public bool flatTextures = false;
         public int maxTextureSize = 2048;
@@ -30,9 +30,11 @@ namespace UnitySourceEngine.Examples
             SourceTexture.averageTextures = flatTextures;
             SourceTexture.maxTextureSize = maxTextureSize;
 
-            SourceModel model = null;
+            SourceModel model = new SourceModel(modelPath);
             using (VPKParser vpk = new VPKParser(vpkPath))
-                model = SourceModel.GrabModel(null, vpk, modelPath);
+                model.Parse(null, vpk);
+            //     model = SourceModel.GrabModel(null, vpk, modelPath);
+            model.InstantiateGameObject();
             return model;
         }
     }

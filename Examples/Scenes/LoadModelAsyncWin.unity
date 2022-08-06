@@ -199,13 +199,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 76366873}
-  m_LocalRotation: {x: 0.31622103, y: -0, z: -0, w: 0.9486856}
-  m_LocalPosition: {x: 0, y: 1830, z: -2238}
+  m_LocalRotation: {x: 0.5, y: 0.5, z: 0.5, w: 0.5}
+  m_LocalPosition: {x: -36, y: -20, z: 10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 36.869003, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 90}
 --- !u!1 &134528248
 GameObject:
   m_ObjectHideFlags: 0
@@ -744,7 +744,7 @@ GameObject:
   - component: {fileID: 1277443854}
   - component: {fileID: 1277443853}
   m_Layer: 0
-  m_Name: MapLoader
+  m_Name: ModelLoader
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -759,15 +759,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 1277443852}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6f1a79fbeacb76846abf571f56c3f9ff, type: 3}
+  m_Script: {fileID: 11500000, guid: 7b2a0eb3f8a6a61afa8a20e1a73f1a0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   statusLabel: {fileID: 1772195655}
   loadingBar: {fileID: 134528250}
-  mapPath: ~/.steam/steam/steamapps/common/Counter-Strike Global Offensive/csgo/maps/ar_monastery.bsp
-  combineMeshesWithSameTextures: 1
-  faceLoadPercent: 1
-  modelLoadPercent: 1
+  vpkPath: C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\csgo
+  modelPath: models/weapons/v_rif_m4a1
   flatTextures: 0
   maxTextureSize: 2048
 --- !u!4 &1277443854

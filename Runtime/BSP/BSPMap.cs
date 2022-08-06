@@ -31,6 +31,7 @@ namespace UnitySourceEngine
 
         private List<FaceMesh> allFaces = new List<FaceMesh>();
         private StaticPropData[] staticProps;
+        private Dictionary<string, SourceModel> cachedModels = new Dictionary<string, SourceModel>();
         public Dictionary<int, SourceLightmap> lightmaps; //Maps from face lightofs to lightmap
         #endregion
 
@@ -75,9 +76,12 @@ namespace UnitySourceEngine
             isBuilding = false;
             currentMessage = string.Empty;
 
-            if (staticProps != null)
-                foreach (var prop in staticProps)
-                    prop.model?.Dispose();
+            // if (staticProps != null)
+            //     foreach (var prop in staticProps)
+            //         prop.model?.Dispose();
+            foreach (var modelPair in cachedModels)
+                modelPair.Value.Dispose();
+            cachedModels = new Dictionary<string, SourceModel>();
             staticProps = null;
 
             if (lightmaps != null)
@@ -174,7 +178,7 @@ namespace UnitySourceEngine
             }
             return dependencies;
         }
-        public void ParseFile(CancellationToken cancelToken, Action<float, string> onProgressChanged = null, Action onFinished = null)
+        public void ParseFile(CancellationToken? cancelToken = null, Action<float, string> onProgressChanged = null, Action onFinished = null)
         {
             isParsed = false;
             isParsing = true;
@@ -235,11 +239,11 @@ namespace UnitySourceEngine
                 }
             return undesired || (tf & texflags.SURF_SKY2D) == texflags.SURF_SKY2D || (tf & texflags.SURF_SKY) == texflags.SURF_SKY || (tf & texflags.SURF_NODRAW) == texflags.SURF_NODRAW || (tf & texflags.SURF_SKIP) == texflags.SURF_SKIP;
         }
-        private void ReadFaces(BSPParser bspParser, VPKParser vpkParser, CancellationToken cancelToken, Action<float, string> onProgressChanged = null)
+        private void ReadFaces(BSPParser bspParser, VPKParser vpkParser, CancellationToken? cancelToken = null, Action<float, string> onProgressChanged = null)
         {
             for (int i = 0; i < Mathf.RoundToInt(bspParser.faces.Length * FaceLoadPercent); i++)
             {
-                if (cancelToken.IsCancellationRequested)
+                if ((cancelToken?.IsCancellationRequested ?? false))
                     return;
 
                 dface_t face = bspParser.faces[i];
@@ -498,13 +502,13 @@ namespace UnitySourceEngine
                 allFaces.Add(faceMesh);
         }
 
-        private void ReadStaticProps(BSPParser bspParser, VPKParser vpkParser, CancellationToken cancelToken, Action<float, string> onProgressChanged = null)
+        private void ReadStaticProps(BSPParser bspParser, VPKParser vpkParser, CancellationToken? cancelToken = null, Action<float, string> onProgressChanged = null)
         {
             int staticPropCount = Mathf.RoundToInt(bspParser.staticProps.staticPropInfo.Length * ModelLoadPercent);
             staticProps = new StaticPropData[staticPropCount];
             for (int i = 0; i < staticPropCount; i++)
             {
-                if (cancelToken.IsCancellationRequested)
+                if ((cancelToken?.IsCancellationRequested ?? false))
                     return;
 
                 var currentPropInfo = bspParser.staticProps.staticPropInfo[i];
@@ -513,7 +517,18 @@ namespace UnitySourceEngine
                 string modelFullPath = bspParser.staticProps.staticPropDict.names[propType];
                 modelFullPath = modelFullPath.Substring(0, modelFullPath.LastIndexOf("."));
 
-                staticProps[i].model = SourceModel.GrabModel(bspParser, vpkParser, modelFullPath);
+                var modelKey = SourceModel.KeyFromPath(modelFullPath);
+                SourceModel model;
+                if (!cachedModels.ContainsKey(modelKey))
+                {
+                    model = new SourceModel(modelFullPath);
+                    model.Parse(bspParser, vpkParser, cancelToken);
+                }
+                else
+                {
+                    model = cachedModels[modelKey];
+                }
+                staticProps[i].model = model;//SourceModel.GrabModel(bspParser, vpkParser, modelFullPath);
                 staticProps[i].debug = currentPropInfo.ToString();
 
                 staticProps[i].origin = currentPropInfo.Origin;

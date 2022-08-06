@@ -24,7 +24,7 @@ namespace UnitySourceEngine
         public VPKParser(string _directoryLocation, string _vpkPakPrefix)
         {
             vpkStartName = _vpkPakPrefix;
-            directoryLocation = _directoryLocation;
+            directoryLocation = _directoryLocation.Replace("\\", "/").Replace("~", System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile));
         }
 
         // Dispose() calls Dispose(true)
