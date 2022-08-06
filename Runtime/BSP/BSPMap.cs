@@ -19,13 +19,14 @@ namespace UnitySourceEngine
         #region Map Variables
         public string mapName { get; private set; }
         public string mapDir { get; private set; }
+        public string vpkDir { get; private set; }
         public static bool combineMeshesWithSameTexture;
         private static float modelLoadPercent = 1;
         public static float ModelLoadPercent { get { return Mathf.Clamp01(modelLoadPercent); } set { modelLoadPercent = value; } }
         private static float faceLoadPercent = 1;
         public static float FaceLoadPercent { get { return Mathf.Clamp01(faceLoadPercent); } set { faceLoadPercent = value; } }
         public static bool applyLightmaps;
-        public static string vpkLoc;
+        // public static string vpkLoc;
         public GameObject gameObject { get; private set; }
 
         private List<FaceMesh> allFaces = new List<FaceMesh>();
@@ -47,9 +48,14 @@ namespace UnitySourceEngine
 
         public BSPMap(string _mapLocation)
         {
-            mapDir = _mapLocation.Replace("\\", "/").ToLower();
+            mapDir = _mapLocation.Replace("\\", "/");//.ToLower();
             mapName = Path.GetFileNameWithoutExtension(mapDir);
-            mapDir = Path.GetDirectoryName(mapDir);
+            mapDir = Path.GetDirectoryName(mapDir).Replace("~", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            vpkDir = Path.Combine(mapDir, "..");
+        }
+        public BSPMap(string _mapLocation, string _vpkDir) : this(_mapLocation)
+        {
+            vpkDir = _vpkDir.Replace("~", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
         }
 
         public override bool Equals(object obj)
@@ -91,7 +97,7 @@ namespace UnitySourceEngine
         public List<string> GetDependencies(CancellationToken cancelToken)
         {
             List<string> dependencies = new List<string>();
-            using (VPKParser vpkParser = new VPKParser(vpkLoc))
+            using (VPKParser vpkParser = new VPKParser(vpkDir))
             using (BSPParser bspParser = new BSPParser(Path.Combine(mapDir, mapName + ".bsp")))
             {
                 bool validVPK = vpkParser.IsValid();
@@ -176,7 +182,7 @@ namespace UnitySourceEngine
             //currentMessage = "Reading BSP Data";
             //onProgressChanged?.Invoke(PercentLoaded, currentMessage);
 
-            using (VPKParser vpkParser = new VPKParser(vpkLoc))
+            using (VPKParser vpkParser = new VPKParser(vpkDir))
             using (BSPParser bspParser = new BSPParser(Path.Combine(mapDir, mapName + ".bsp")))
             {
                 bspParser.ParseData(cancelToken);

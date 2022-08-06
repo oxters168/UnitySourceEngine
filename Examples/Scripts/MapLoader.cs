@@ -4,7 +4,6 @@ namespace UnitySourceEngine.Examples
 {
     public class MapLoader : MonoBehaviour
     {
-        public string vpkPath = @"C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\csgo";
         public string mapPath = @"C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\csgo\maps\ar_monastery.bsp";
         [Space(10)]
         public bool combineMeshesWithSameTextures = true;
@@ -19,7 +18,7 @@ namespace UnitySourceEngine.Examples
 
         private void Start()
         {
-            map = LoadMap(vpkPath, mapPath, combineMeshesWithSameTextures, faceLoadPercent, modelLoadPercent, flatTextures, maxTextureSize);
+            map = LoadMap(mapPath, combineMeshesWithSameTextures, faceLoadPercent, modelLoadPercent, flatTextures, maxTextureSize);
         }
         private void OnDestroy()
         {
@@ -28,9 +27,8 @@ namespace UnitySourceEngine.Examples
             map = null;
         }
 
-        public BSPMap LoadMap(string vpkLoc, string mapLoc, bool combineMeshesWithSameTextures = true, float faceLoadPercent = 1, float modelLoadPercent = 1, bool flatTextures = false, int maxTextureSize = 2048)
+        public BSPMap LoadMap(string mapLoc, bool combineMeshesWithSameTextures = true, float faceLoadPercent = 1, float modelLoadPercent = 1, bool flatTextures = false, int maxTextureSize = 2048)
         {
-            BSPMap.vpkLoc = vpkLoc;
             BSPMap map = new BSPMap(mapLoc);
 
             BSPMap.combineMeshesWithSameTexture = combineMeshesWithSameTextures;
