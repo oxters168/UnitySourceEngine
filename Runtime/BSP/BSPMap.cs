@@ -589,12 +589,24 @@ namespace UnitySourceEngine
                 //if (totalItemsLoaded % breathingInterval == 0)
                 //    yield return null;
             }
+            Dictionary<string, GameObject> prefabs = new Dictionary<string, GameObject>();
             for (int i = 0; i < staticPropsCount; i++)
             {
                 if (staticProps[i].model != null)
                 {
-                    GameObject model = staticProps[i].model.Build();
-                    model.name += "_" + staticProps[i].debug;
+                    GameObject model;
+                    if (!prefabs.ContainsKey(staticProps[i].model.key))
+                    {
+                        model = staticProps[i].model.Build();
+                        prefabs[staticProps[i].model.key] = model;
+                    }
+                    else
+                    {
+                        model = GameObject.Instantiate(prefabs[staticProps[i].model.key]);
+                        Debug.Log("Duplicated " + model.name);
+                    }
+
+                    // model.name += "_" + staticProps[i].debug;
                     model.transform.SetParent(gameObject.transform);
                     model.transform.localPosition = staticProps[i].origin.FixNaN();
                     model.transform.rotation = staticProps[i].angles.ToQuaternion();
