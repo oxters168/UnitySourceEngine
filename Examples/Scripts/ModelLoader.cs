@@ -16,7 +16,7 @@ namespace UnitySourceEngine.Examples
         {
             model = LoadModel(vpkPath, modelPath, flatTextures, maxTextureSize);
             if (model != null)
-                model.InstantiateGameObject().transform.SetParent(transform, false);
+                model.Build().transform.SetParent(transform, false);
         }
         private void OnDestroy()
         {
@@ -34,7 +34,7 @@ namespace UnitySourceEngine.Examples
             using (VPKParser vpk = new VPKParser(vpkPath))
                 model.Parse(null, vpk);
             //     model = SourceModel.GrabModel(null, vpk, modelPath);
-            model.InstantiateGameObject();
+            // model.Build();
             return model;
         }
     }

@@ -593,7 +593,7 @@ namespace UnitySourceEngine
             {
                 if (staticProps[i].model != null)
                 {
-                    GameObject model = staticProps[i].model.InstantiateGameObject();
+                    GameObject model = staticProps[i].model.Build();
                     model.name += "_" + staticProps[i].debug;
                     model.transform.SetParent(gameObject.transform);
                     model.transform.localPosition = staticProps[i].origin.FixNaN();

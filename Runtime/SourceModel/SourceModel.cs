@@ -7,7 +7,7 @@ namespace UnitySourceEngine
 {
     public class SourceModel
     {
-        private static GameObject staticPropLibrary;
+        // private static GameObject staticPropLibrary;
 
         public static float decimationPercent = 0;
 
@@ -22,7 +22,7 @@ namespace UnitySourceEngine
         public studiohdr_t header1;
         public studiohdr2_t header2;
 
-        private GameObject modelPrefab;
+        // private GameObject modelPrefab;
         private List<FaceMesh> faces = new List<FaceMesh>();
 
         public SourceModel(string _modelPath)
@@ -37,9 +37,9 @@ namespace UnitySourceEngine
                     face?.Dispose();
             faces = null;
 
-            if (modelPrefab != null)
-                Object.Destroy(modelPrefab);
-            modelPrefab = null;
+            // if (modelPrefab != null)
+            //     Object.Destroy(modelPrefab);
+            // modelPrefab = null;
         }
 
         public static string KeyFromPath(string path)
@@ -307,45 +307,27 @@ namespace UnitySourceEngine
                 Debug.LogError("SourceModel: MDL and VTX body part count doesn't match (" + modelPath + ")");
         }
 
-        private void BuildPrefab()
+        public GameObject Build()
         {
-            modelPrefab = new GameObject("StaticProp_v" + version + "_id" + id + "_" + modelPath);
-            modelPrefab.transform.parent = staticPropLibrary.transform;
-            modelPrefab.SetActive(false);
+            var modelGO = new GameObject(header1.name);
 
-            //Material materialPrefab = modelMaterial;
-            //bool destroyMatAfterBuild = modelMaterial == null;
-            //if (destroyMatAfterBuild)
-            //    materialPrefab = new Material(Shader.Find("Legacy Shaders/Diffuse"));
             if (faces != null)
                 foreach (FaceMesh faceMesh in faces)
                 {
                     GameObject meshRepresentation = new GameObject(faceMesh.faceName);
-                    meshRepresentation.transform.parent = modelPrefab.transform;
+                    meshRepresentation.transform.parent = modelGO.transform;
 
                     Mesh mesh = faceMesh.meshData.GenerateMesh();
+                    mesh.name = faceMesh.faceName;
 
                     MeshFilter mesher = meshRepresentation.AddComponent<MeshFilter>();
                     mesher.sharedMesh = mesh;
 
-                    //materialsCreated.Add(meshMaterial);
-                    //meshMaterial.mainTexture = faceMesh.texture?.GetTexture();
                     meshRepresentation.AddComponent<MeshRenderer>().material = faceMesh.material?.GetMaterial();
-                    meshRepresentation.AddComponent<MeshCollider>();
+                    // meshRepresentation.AddComponent<MeshCollider>();
                 }
-            //if (destroyMatAfterBuild)
-            //    Object.Destroy(materialPrefab);
-        }
-        public GameObject InstantiateGameObject()
-        {
-            if (!staticPropLibrary)
-                staticPropLibrary = new GameObject("StaticPropPrefabs");
-            if (!modelPrefab)
-                BuildPrefab();
 
-            GameObject cloned = Object.Instantiate(modelPrefab);
-            cloned.SetActive(true);
-            return cloned;
+            return modelGO;
         }
     }
 }

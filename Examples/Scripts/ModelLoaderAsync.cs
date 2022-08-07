@@ -67,7 +67,7 @@ namespace UnitySourceEngine.Examples
                         header2 = model.header2.ToString();
                         if (!loadingTask.cancelled)
                             UnityHelpers.TaskManagerController.RunAction(() => {
-                                model.InstantiateGameObject();
+                                model.Build();
                                 loadingBar.transform.root.gameObject.SetActive(false);
                                 Debug.Log("Loaded " + model.key);
                             });
