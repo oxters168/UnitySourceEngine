@@ -519,7 +519,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Press play in the editor to start loading the map
+  m_Text: Press play in the editor to start loading the model
 --- !u!222 &557247170
 CanvasRenderer:
   m_ObjectHideFlags: 0

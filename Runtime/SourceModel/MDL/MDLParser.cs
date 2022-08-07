@@ -73,8 +73,8 @@ namespace UnitySourceEngine
         {
             fileBeginOffset = offsetPosition;
 
-            ParseHeader1(stream);
-            ParseHeader2(stream);
+            header1 = ParseHeader1(stream, offsetPosition);
+            header2 = ParseHeader2(stream);
         }
         public void Parse(Stream stream, long offsetPosition = 0)
         {
@@ -85,34 +85,34 @@ namespace UnitySourceEngine
             ParseTextures(stream);
             ParseTexturePaths(stream);
         }
-        private studiohdr_t ParseHeader1(Stream stream)
+        private static studiohdr_t ParseHeader1(Stream stream, long fileBeginOffset)
         {
-            header1 = new studiohdr_t();
+            var parsed = new studiohdr_t();
 
             stream.Position = fileBeginOffset;
 
-            header1.id = DataParser.ReadInt(stream); // Model format ID, such as "IDST" (0x49 0x44 0x53 0x54)
-            header1.version = DataParser.ReadInt(stream); // Format version number, such as 48 (0x30,0x00,0x00,0x00)
-            header1.checkSum = DataParser.ReadInt(stream); // this has to be the same in the phy and vtx files to load!
+            parsed.id = DataParser.ReadInt(stream); // Model format ID, such as "IDST" (0x49 0x44 0x53 0x54)
+            parsed.version = DataParser.ReadInt(stream); // Format version number, such as 48 (0x30,0x00,0x00,0x00)
+            parsed.checkSum = DataParser.ReadInt(stream); // this has to be the same in the phy and vtx files to load!
             char[] name = new char[64];
             for (int i = 0; i < name.Length; i++)
             {
                 name[i] = DataParser.ReadChar(stream);
             }
-            header1.name = name; // The internal name of the model, padding with null bytes.
+            parsed.name = new string(name).Replace("\0", ""); // The internal name of the model, padding with null bytes.
                                  // Typically "my_model.mdl" will have an internal name of "my_model"
-            this.name = new string(name).Replace("\0", "");
-            header1.dataLength = DataParser.ReadInt(stream);    // Data size of MDL file in bytes.
+            // this.name = new string(name).Replace("\0", "");
+            parsed.dataLength = DataParser.ReadInt(stream);    // Data size of MDL file in bytes.
 
             // A vector is 12 bytes, three 4-byte float-values in a row.
-            header1.eyeposition = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream)); // Position of player viewpoint relative to model origin
-            header1.illumposition = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream)); // ?? Presumably the point used for lighting when per-vertex lighting is not enabled.
-            header1.hull_min = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream)); // Corner of model hull box with the least X/Y/Z values
-            header1.hull_max = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream)); // Opposite corner of model hull box
-            header1.view_bbmin = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream)); // View Bounding Box Minimum Position
-            header1.view_bbmax = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream)); // View Bounding Box Maximum Position
+            parsed.eyeposition = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream)); // Position of player viewpoint relative to model origin
+            parsed.illumposition = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream)); // ?? Presumably the point used for lighting when per-vertex lighting is not enabled.
+            parsed.hull_min = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream)); // Corner of model hull box with the least X/Y/Z values
+            parsed.hull_max = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream)); // Opposite corner of model hull box
+            parsed.view_bbmin = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream)); // View Bounding Box Minimum Position
+            parsed.view_bbmax = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream)); // View Bounding Box Maximum Position
 
-            header1.flags = DataParser.ReadInt(stream); // Binary flags in little-endian order. 
+            parsed.flags = DataParser.ReadInt(stream); // Binary flags in little-endian order. 
                                                         // ex (00000001,00000000,00000000,11000000) means flags for position 0, 30, and 31 are set. 
                                                         // Set model flags section for more information
 
@@ -129,84 +129,84 @@ namespace UnitySourceEngine
              */
 
             // mstudiobone_t
-            header1.bone_count = DataParser.ReadInt(stream);    // Number of data sections (of type mstudiobone_t)
-            header1.bone_offset = DataParser.ReadInt(stream);   // Offset of first data section
+            parsed.bone_count = DataParser.ReadInt(stream);    // Number of data sections (of type mstudiobone_t)
+            parsed.bone_offset = DataParser.ReadInt(stream);   // Offset of first data section
 
             // mstudiobonecontroller_t
-            header1.bonecontroller_count = DataParser.ReadInt(stream);
-            header1.bonecontroller_offset = DataParser.ReadInt(stream);
+            parsed.bonecontroller_count = DataParser.ReadInt(stream);
+            parsed.bonecontroller_offset = DataParser.ReadInt(stream);
 
             // mstudiohitboxset_t
-            header1.hitbox_count = DataParser.ReadInt(stream);
-            header1.hitbox_offset = DataParser.ReadInt(stream);
+            parsed.hitbox_count = DataParser.ReadInt(stream);
+            parsed.hitbox_offset = DataParser.ReadInt(stream);
 
             // mstudioanimdesc_t
-            header1.localanim_count = DataParser.ReadInt(stream);
-            header1.localanim_offset = DataParser.ReadInt(stream);
+            parsed.localanim_count = DataParser.ReadInt(stream);
+            parsed.localanim_offset = DataParser.ReadInt(stream);
 
             // mstudioseqdesc_t
-            header1.localseq_count = DataParser.ReadInt(stream);
-            header1.localseq_offset = DataParser.ReadInt(stream);
+            parsed.localseq_count = DataParser.ReadInt(stream);
+            parsed.localseq_offset = DataParser.ReadInt(stream);
 
-            header1.activitylistversion = DataParser.ReadInt(stream); // ??
-            header1.eventsindexed = DataParser.ReadInt(stream); // ??
+            parsed.activitylistversion = DataParser.ReadInt(stream); // ??
+            parsed.eventsindexed = DataParser.ReadInt(stream); // ??
 
             // VMT texture filenames
             // mstudiotexture_t
-            header1.texture_count = DataParser.ReadInt(stream);
-            header1.texture_offset = DataParser.ReadInt(stream);
+            parsed.texture_count = DataParser.ReadInt(stream);
+            parsed.texture_offset = DataParser.ReadInt(stream);
 
             // This offset points to a series of ints.
             // Each int value, in turn, is an offset relative to the start of this header/the-file,
             // At which there is a null-terminated string.
-            header1.texturedir_count = DataParser.ReadInt(stream);
-            header1.texturedir_offset = DataParser.ReadInt(stream);
+            parsed.texturedir_count = DataParser.ReadInt(stream);
+            parsed.texturedir_offset = DataParser.ReadInt(stream);
 
             // Each skin-family assigns a texture-id to a skin location
-            header1.skinreference_count = DataParser.ReadInt(stream);
-            header1.skinrfamily_count = DataParser.ReadInt(stream);
-            header1.skinreference_index = DataParser.ReadInt(stream);
+            parsed.skinreference_count = DataParser.ReadInt(stream);
+            parsed.skinrfamily_count = DataParser.ReadInt(stream);
+            parsed.skinreference_index = DataParser.ReadInt(stream);
 
             // mstudiobodyparts_t
-            header1.bodypart_count = DataParser.ReadInt(stream);
-            header1.bodypart_offset = DataParser.ReadInt(stream);
+            parsed.bodypart_count = DataParser.ReadInt(stream);
+            parsed.bodypart_offset = DataParser.ReadInt(stream);
 
             // Local attachment points		
             // mstudioattachment_t
-            header1.attachment_count = DataParser.ReadInt(stream);
-            header1.attachment_offset = DataParser.ReadInt(stream);
+            parsed.attachment_count = DataParser.ReadInt(stream);
+            parsed.attachment_offset = DataParser.ReadInt(stream);
 
             // Node values appear to be single bytes, while their names are null-terminated strings.
-            header1.localnode_count = DataParser.ReadInt(stream);
-            header1.localnode_index = DataParser.ReadInt(stream);
-            header1.localnode_name_index = DataParser.ReadInt(stream);
+            parsed.localnode_count = DataParser.ReadInt(stream);
+            parsed.localnode_index = DataParser.ReadInt(stream);
+            parsed.localnode_name_index = DataParser.ReadInt(stream);
 
             // mstudioflexdesc_t
-            header1.flexdesc_count = DataParser.ReadInt(stream);
-            header1.flexdesc_index = DataParser.ReadInt(stream);
+            parsed.flexdesc_count = DataParser.ReadInt(stream);
+            parsed.flexdesc_index = DataParser.ReadInt(stream);
 
             // mstudioflexcontroller_t
-            header1.flexcontroller_count = DataParser.ReadInt(stream);
-            header1.flexcontroller_index = DataParser.ReadInt(stream);
+            parsed.flexcontroller_count = DataParser.ReadInt(stream);
+            parsed.flexcontroller_index = DataParser.ReadInt(stream);
 
             // mstudioflexrule_t
-            header1.flexrules_count = DataParser.ReadInt(stream);
-            header1.flexrules_index = DataParser.ReadInt(stream);
+            parsed.flexrules_count = DataParser.ReadInt(stream);
+            parsed.flexrules_index = DataParser.ReadInt(stream);
 
             // IK probably referse to inverse kinematics
             // mstudioikchain_t
-            header1.ikchain_count = DataParser.ReadInt(stream);
-            header1.ikchain_index = DataParser.ReadInt(stream);
+            parsed.ikchain_count = DataParser.ReadInt(stream);
+            parsed.ikchain_index = DataParser.ReadInt(stream);
 
             // Information about any "mouth" on the model for speech animation
             // More than one sounds pretty creepy.
             // mstudiomouth_t
-            header1.mouths_count = DataParser.ReadInt(stream);
-            header1.mouths_index = DataParser.ReadInt(stream);
+            parsed.mouths_count = DataParser.ReadInt(stream);
+            parsed.mouths_index = DataParser.ReadInt(stream);
 
             // mstudioposeparamdesc_t
-            header1.localposeparam_count = DataParser.ReadInt(stream);
-            header1.localposeparam_index = DataParser.ReadInt(stream);
+            parsed.localposeparam_count = DataParser.ReadInt(stream);
+            parsed.localposeparam_index = DataParser.ReadInt(stream);
 
             /*
              * For anyone trying to follow along, as of this writing,
@@ -216,64 +216,64 @@ namespace UnitySourceEngine
             //stream.Position = 308;
 
             // Surface property value (single null-terminated string)
-            header1.surfaceprop_index = DataParser.ReadInt(stream);
+            parsed.surfaceprop_index = DataParser.ReadInt(stream);
 
             // Unusual: In this one index comes first, then count.
             // Key-value data is a series of strings. If you can't find
             // what you're interested in, check the associated PHY file as well.
-            header1.keyvalue_index = DataParser.ReadInt(stream);
-            header1.keyvalue_count = DataParser.ReadInt(stream);
+            parsed.keyvalue_index = DataParser.ReadInt(stream);
+            parsed.keyvalue_count = DataParser.ReadInt(stream);
 
             // More inverse-kinematics
             // mstudioiklock_t
-            header1.iklock_count = DataParser.ReadInt(stream);
-            header1.iklock_index = DataParser.ReadInt(stream);
+            parsed.iklock_count = DataParser.ReadInt(stream);
+            parsed.iklock_index = DataParser.ReadInt(stream);
 
 
-            header1.mass = DataParser.ReadFloat(stream); // Mass of object (4-bytes)
-            header1.contents = DataParser.ReadInt(stream); // ??
+            parsed.mass = DataParser.ReadFloat(stream); // Mass of object (4-bytes)
+            parsed.contents = DataParser.ReadInt(stream); // ??
 
             // Other models can be referenced for re-used sequences and animations
             // (See also: The $includemodel QC option.)
             // mstudiomodelgroup_t
-            header1.includemodel_count = DataParser.ReadInt(stream);
-            header1.includemodel_index = DataParser.ReadInt(stream);
+            parsed.includemodel_count = DataParser.ReadInt(stream);
+            parsed.includemodel_index = DataParser.ReadInt(stream);
 
-            header1.virtualModel = DataParser.ReadInt(stream); // Placeholder for mutable-void*
+            parsed.virtualModel = DataParser.ReadInt(stream); // Placeholder for mutable-void*
 
             // mstudioanimblock_t
-            header1.animblocks_name_index = DataParser.ReadInt(stream);
-            header1.animblocks_count = DataParser.ReadInt(stream);
-            header1.animblocks_index = DataParser.ReadInt(stream);
+            parsed.animblocks_name_index = DataParser.ReadInt(stream);
+            parsed.animblocks_count = DataParser.ReadInt(stream);
+            parsed.animblocks_index = DataParser.ReadInt(stream);
 
-            header1.animblockModel = DataParser.ReadInt(stream); // Placeholder for mutable-void*
+            parsed.animblockModel = DataParser.ReadInt(stream); // Placeholder for mutable-void*
 
             // Points to a series of bytes?
-            header1.bonetablename_index = DataParser.ReadInt(stream);
+            parsed.bonetablename_index = DataParser.ReadInt(stream);
 
-            header1.vertex_base = DataParser.ReadInt(stream); // Placeholder for void*
-            header1.offset_base = DataParser.ReadInt(stream); // Placeholder for void*
+            parsed.vertex_base = DataParser.ReadInt(stream); // Placeholder for void*
+            parsed.offset_base = DataParser.ReadInt(stream); // Placeholder for void*
 
             // Used with $constantdirectionallight from the QC 
             // Model should have flag #13 set if enabled
-            header1.directionaldotproduct = DataParser.ReadByte(stream);
+            parsed.directionaldotproduct = DataParser.ReadByte(stream);
 
-            header1.rootLod = DataParser.ReadByte(stream); // Preferred rather than clamped
+            parsed.rootLod = DataParser.ReadByte(stream); // Preferred rather than clamped
 
             // 0 means any allowed, N means Lod 0 -> (N-1)
-            header1.numAllowedRootLods = DataParser.ReadByte(stream);
+            parsed.numAllowedRootLods = DataParser.ReadByte(stream);
 
             //header.unused; // ??
-            header1.unused1 = DataParser.ReadByte(stream);
+            parsed.unused1 = DataParser.ReadByte(stream);
             //header.unused; // ??
-            header1.unused2 = DataParser.ReadInt(stream);
+            parsed.unused2 = DataParser.ReadInt(stream);
 
             // mstudioflexcontrollerui_t
-            header1.flexcontrollerui_count = DataParser.ReadInt(stream);
-            header1.flexcontrollerui_index = DataParser.ReadInt(stream);
+            parsed.flexcontrollerui_count = DataParser.ReadInt(stream);
+            parsed.flexcontrollerui_index = DataParser.ReadInt(stream);
 
-            header1.vertAnimFixedPointScale = DataParser.ReadFloat(stream);
-            header1.surfacePropLookup = DataParser.ReadInt(stream);
+            parsed.vertAnimFixedPointScale = DataParser.ReadFloat(stream);
+            parsed.surfacePropLookup = DataParser.ReadInt(stream);
 
             /**
              * Offset for additional header information.
@@ -281,35 +281,35 @@ namespace UnitySourceEngine
              * follows this studiohdr_t
              */
             // studiohdr2_t
-            header1.studiohdr2index = DataParser.ReadInt(stream);
+            parsed.studiohdr2index = DataParser.ReadInt(stream);
 
             //header.unused; // ??
-            header1.unused3 = DataParser.ReadInt(stream);
+            parsed.unused3 = DataParser.ReadInt(stream);
 
-            return header1;
+            return parsed;
         }
-        private studiohdr2_t ParseHeader2(Stream stream)
+        private static studiohdr2_t ParseHeader2(Stream stream)
         {
-            header2 = new studiohdr2_t();
+            var parsed = new studiohdr2_t();
 
-            header2.srcbonetransform_count = DataParser.ReadInt(stream);
-            header2.srcbonetransform_index = DataParser.ReadInt(stream);
-            header2.illumpositionattachmentindex = DataParser.ReadInt(stream);
-            header2.flMaxEyeDeflection = DataParser.ReadFloat(stream);
-            header2.linearbone_index = DataParser.ReadInt(stream);
+            parsed.srcbonetransform_count = DataParser.ReadInt(stream);
+            parsed.srcbonetransform_index = DataParser.ReadInt(stream);
+            parsed.illumpositionattachmentindex = DataParser.ReadInt(stream);
+            parsed.flMaxEyeDeflection = DataParser.ReadFloat(stream);
+            parsed.linearbone_index = DataParser.ReadInt(stream);
 
-            header2.sznameindex = DataParser.ReadInt(stream);
-            header2.m_nBoneFlexDriverCount = DataParser.ReadInt(stream);
-            header2.m_nBoneFlexDriverIndex = DataParser.ReadInt(stream);
+            parsed.sznameindex = DataParser.ReadInt(stream);
+            parsed.m_nBoneFlexDriverCount = DataParser.ReadInt(stream);
+            parsed.m_nBoneFlexDriverIndex = DataParser.ReadInt(stream);
 
             int[] reserved = new int[56];
             for (int i = 0; i < reserved.Length; i++)
             {
                 reserved[i] = DataParser.ReadInt(stream);
             }
-            header2.reserved = reserved;
+            parsed.reserved = reserved;
 
-            return header2;
+            return parsed;
         }
 
         private mstudiobone_t[] ParseBones(Stream stream)

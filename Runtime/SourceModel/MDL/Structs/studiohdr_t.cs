@@ -7,7 +7,7 @@ namespace UnitySourceEngine
         public int id; // Model format ID, such as "IDST" (0x49 0x44 0x53 0x54)
         public int version; // Format version number, such as 48 (0x30,0x00,0x00,0x00)
         public int checkSum; // this has to be the same in the phy and vtx files to load!
-        public char[] name; // The internal name of the model, padding with null bytes.
+        public string name; // The internal name of the model, padding with null bytes.
                             // Typically "my_model.mdl" will have an internal name of "my_model"
         public int dataLength;  // Data size of MDL file in bytes.
 
@@ -188,11 +188,11 @@ namespace UnitySourceEngine
 
         public override string ToString()
         {
-            string output = "MDLHeader1";
-            output += "\n_id(" + id + ")";
+            string output = string.Empty;
+            output += "_id(" + id + ")";
             output += "\n_version(" + version + ")";
             output += "\n_checksum(" + checkSum + ")";
-            output += "\n_name(" + new string(name).Replace("\0", "") + ")";
+            output += "\n_name(" + name + ")";//new string(name).Replace("\0", "") + ")";
             output += "\n_datalength(" + dataLength + ")";
             output += "\n_eyeposition(" + eyeposition + ")";
             output += "\n_illumposition(" + illumposition + ")";

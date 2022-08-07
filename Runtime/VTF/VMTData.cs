@@ -56,7 +56,8 @@ namespace UnitySourceEngine
                 else if (hasTransparency && bumpMap != null)
                     material = new Material(Shader.Find("Legacy Shaders/Transparent/Bumped Diffuse"));
                 else
-                    material = new Material(Shader.Find("Standard"));
+                    material = new Material(Shader.Find("Legacy Shaders/Diffuse"));
+                    // material = new Material(Shader.Find("Standard"));
                 //else if (bumpMap != null)
                 //    material = new Material(Shader.Find("Mobile/Bumped Diffuse Variant"));
                 //else

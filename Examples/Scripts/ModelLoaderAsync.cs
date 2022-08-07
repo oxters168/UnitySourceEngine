@@ -1,6 +1,8 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityHelpers.Editor;
+#endif
 
 namespace UnitySourceEngine.Examples
 {
@@ -17,6 +19,15 @@ namespace UnitySourceEngine.Examples
 
         private SourceModel model;
         private UnityHelpers.TaskWrapper loadingTask;
+
+        #if UNITY_EDITOR
+        [Space(10), Debug(true, true)]
+        #endif
+        public string header1 = "";
+        #if UNITY_EDITOR
+        [Debug(true, true)]
+        #endif
+        public string header2 = "";
 
         private void Update()
         {
@@ -52,25 +63,18 @@ namespace UnitySourceEngine.Examples
                 using (VPKParser vpk = new VPKParser(vpkPath))
                     model.Parse(null, vpk, cancelToken, () =>
                     {
+                        header1 = model.header1.ToString();
+                        header2 = model.header2.ToString();
                         if (!loadingTask.cancelled)
                             UnityHelpers.TaskManagerController.RunAction(() => {
                                 model.InstantiateGameObject();
                                 loadingBar.transform.root.gameObject.SetActive(false);
                                 Debug.Log("Loaded " + model.key);
                             });
-                        // UnityMainThreadDispatcher.Instance().Enqueue(InitModel());
-                        // model.InstantiateGameObject();
                     });
             });
 
             return model;
-        }
-
-        public IEnumerator InitModel()
-        {
-            model.InstantiateGameObject();
-            loadingBar.transform.root.gameObject.SetActive(false);
-            yield return null;
         }
     }
 }

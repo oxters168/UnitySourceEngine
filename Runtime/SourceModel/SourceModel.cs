@@ -7,7 +7,6 @@ namespace UnitySourceEngine
 {
     public class SourceModel
     {
-        // private static Dictionary<string, SourceModel> loadedModels = new Dictionary<string, SourceModel>(); //Not a good way to cache models, would be better to do this on a per app level
         private static GameObject staticPropLibrary;
 
         public static float decimationPercent = 0;
@@ -20,6 +19,8 @@ namespace UnitySourceEngine
 
         public int version { get; private set; }
         public int id { get; private set; }
+        public studiohdr_t header1;
+        public studiohdr2_t header2;
 
         private GameObject modelPrefab;
         private List<FaceMesh> faces = new List<FaceMesh>();
@@ -27,23 +28,10 @@ namespace UnitySourceEngine
         public SourceModel(string _modelPath)
         {
             modelPath = _modelPath.Replace("\\", "/");//.ToLower();
-            // modelPath = modelPath.Substring(0, modelPath.LastIndexOf(System.IO.Path.GetExtension(modelPath)));
-
-            // loadedModels.Add(modelPath, this);
         }
 
-        // public static void ClearCache()
-        // {
-        //     foreach (var modPair in loadedModels)
-        //         modPair.Value.Dispose();
-        //     loadedModels.Clear();
-        //     loadedModels = new Dictionary<string, SourceModel>();
-        // }
         public void Dispose()
         {
-            // if (loadedModels != null && loadedModels.ContainsKey(modelPath))
-            //     loadedModels.Remove(modelPath);
-
             if (faces != null)
                 foreach (FaceMesh face in faces)
                     face?.Dispose();
@@ -59,24 +47,6 @@ namespace UnitySourceEngine
             return path.Replace("\\", "/").ToLower();
         }
 
-        // public static SourceModel GrabModel(BSPParser bspParser, VPKParser vpkParser, string rawPath)
-        // {
-        //     SourceModel model = null;
-
-        //     string fixedLocation = rawPath.Replace("\\", "/").ToLower();
-
-        //     if (loadedModels.ContainsKey(fixedLocation))
-        //     {
-        //         model = loadedModels[fixedLocation];
-        //     }
-        //     else
-        //     {
-        //         model = new SourceModel(fixedLocation);
-        //         model.Parse(bspParser, vpkParser);
-        //     }
-
-        //     return model;
-        // }
         public void Parse(BSPParser bspParser, VPKParser vpkParser, CancellationToken? cancelToken = null, System.Action onFinished = null)
         {
             if (vpkParser != null)
@@ -102,9 +72,9 @@ namespace UnitySourceEngine
                                 {
                                     currentMessage = "Reading MDL header";
                                     if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(mdlPath))
-                                        bspParser.LoadPakFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.ParseHeader(stream, origOffset); });
+                                        bspParser.LoadPakFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.ParseHeader(stream, origOffset); header1 = mdl.header1; header2 = mdl.header2; });
                                     else if (!(cancelToken?.IsCancellationRequested ?? false))
-                                        vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.ParseHeader(stream, origOffset); });
+                                        vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.ParseHeader(stream, origOffset); header1 = mdl.header1; header2 = mdl.header2; });
                                     PercentLoaded = 1f / 7;
 
                                     currentMessage = "Reading VVD header";
