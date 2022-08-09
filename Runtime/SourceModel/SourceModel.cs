@@ -19,10 +19,9 @@ namespace UnitySourceEngine
 
         public int version { get; private set; }
         public int id { get; private set; }
-        public studiohdr_t header1;
-        public studiohdr2_t header2;
-
-        // private GameObject modelPrefab;
+        public MDLData mdl;
+        public VVDData vvd;
+        public VTXData vtx;
         private List<FaceMesh> faces = new List<FaceMesh>();
 
         public SourceModel(string _modelPath)
@@ -64,25 +63,25 @@ namespace UnitySourceEngine
 
                         if ((bspParser != null && bspParser.HasPakFile(vtxPath)) || (vpkParser != null && vpkParser.FileExists(vtxPath)))
                         {
-                            using (MDLParser mdl = new MDLParser())
-                            using (VVDParser vvd = new VVDParser())
-                            using (VTXParser vtx = new VTXParser())
+                            using (MDLParser mdlParser = new MDLParser())
+                            using (VVDParser vvdParser = new VVDParser())
+                            using (VTXParser vtxParser = new VTXParser())
                             {
                                 try
                                 {
-                                    currentMessage = "Reading MDL header";
+                                    currentMessage = "Reading MDL data";
                                     if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(mdlPath))
-                                        bspParser.LoadPakFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.ParseHeader(stream, origOffset); header1 = mdl.header1; header2 = mdl.header2; });
+                                        bspParser.LoadPakFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl = mdlParser.Parse(stream, origOffset); });
                                     else if (!(cancelToken?.IsCancellationRequested ?? false))
-                                        vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.ParseHeader(stream, origOffset); header1 = mdl.header1; header2 = mdl.header2; });
-                                    PercentLoaded = 1f / 7;
+                                        vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl = mdlParser.Parse(stream, origOffset); });
+                                    PercentLoaded = 1f / 6;
 
                                     currentMessage = "Reading VVD header";
                                     if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(vvdPath))
-                                        bspParser.LoadPakFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.ParseHeader(stream, origOffset); });
+                                        bspParser.LoadPakFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd = vvdParser.Parse(stream, origOffset, mdl.header1.rootLod); });
                                     else if (!(cancelToken?.IsCancellationRequested ?? false))
-                                        vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.ParseHeader(stream, origOffset); });
-                                    PercentLoaded = 2f / 7;
+                                        vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd = vvdParser.Parse(stream, origOffset, mdl.header1.rootLod); });
+                                    PercentLoaded = 2f / 6;
 
                                     int mdlChecksum = mdl.header1.checkSum;
                                     int vvdChecksum = (int)vvd.header.checksum;
@@ -91,42 +90,42 @@ namespace UnitySourceEngine
                                     {
                                         currentMessage = "Reading VTX header";
                                         if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(vtxPath))
-                                            bspParser.LoadPakFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.ParseHeader(stream, origOffset); });
+                                            bspParser.LoadPakFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx = vtxParser.Parse(stream, origOffset); });
                                         else if (!(cancelToken?.IsCancellationRequested ?? false))
-                                            vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.ParseHeader(stream, origOffset); });
-                                        PercentLoaded = 3f / 7;
+                                            vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx = vtxParser.Parse(stream, origOffset); });
+                                        PercentLoaded = 3f / 6;
 
                                         int vtxChecksum = vtx.header.checkSum;
 
                                         if (mdlChecksum == vtxChecksum)
                                         {
-                                            currentMessage = "Parsing MDL";
-                                            if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(mdlPath))
-                                                bspParser.LoadPakFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
-                                            else if (!(cancelToken?.IsCancellationRequested ?? false))
-                                                vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl.Parse(stream, origOffset); });
-                                            PercentLoaded = 4f / 7;
+                                            // currentMessage = "Parsing MDL";
+                                            // if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(mdlPath))
+                                            //     bspParser.LoadPakFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdlParser.Parse(stream, origOffset); });
+                                            // else if (!(cancelToken?.IsCancellationRequested ?? false))
+                                            //     vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdlParser.Parse(stream, origOffset); });
+                                            // PercentLoaded = 4f / 7;
 
-                                            currentMessage = "Parsing VVD";
-                                            if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(vvdPath))
-                                                bspParser.LoadPakFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, mdl.header1.rootLod, origOffset); });
-                                            else if (!(cancelToken?.IsCancellationRequested ?? false))
-                                                vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd.Parse(stream, mdl.header1.rootLod, origOffset); });
-                                            PercentLoaded = 5f / 7;
+                                            // currentMessage = "Parsing VVD";
+                                            // if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(vvdPath))
+                                            //     bspParser.LoadPakFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvdParser.Parse(stream, mdl.header1.rootLod, origOffset); });
+                                            // else if (!(cancelToken?.IsCancellationRequested ?? false))
+                                            //     vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvdParser.Parse(stream, mdl.header1.rootLod, origOffset); });
+                                            // PercentLoaded = 4f / 6;
 
-                                            currentMessage = "Parsing VTX";
-                                            if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(vtxPath))
-                                                bspParser.LoadPakFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
-                                            else if (!(cancelToken?.IsCancellationRequested ?? false))
-                                                vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx.Parse(stream, origOffset); });
-                                            PercentLoaded = 6f / 7;
+                                            // currentMessage = "Parsing VTX";
+                                            // if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(vtxPath))
+                                            //     bspParser.LoadPakFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtxParser.Parse(stream, origOffset); });
+                                            // else if (!(cancelToken?.IsCancellationRequested ?? false))
+                                            //     vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtxParser.Parse(stream, origOffset); });
+                                            // PercentLoaded = 5f / 6;
 
                                             version = mdl.header1.version;
                                             id = mdl.header1.id;
 
                                             currentMessage = "Converting to mesh";
                                             if (!(cancelToken?.IsCancellationRequested ?? false) && mdl.bodyParts != null)
-                                                ReadFaceMeshes(mdl, vvd, vtx, bspParser, vpkParser);
+                                                ReadFaceMeshes(mdlParser, vvdParser, vtxParser, bspParser, vpkParser);
                                             else if (!(cancelToken?.IsCancellationRequested ?? false))
                                                 Debug.LogError("SourceModel: Could not find body parts of " + modelPath);
                                             PercentLoaded = 1;
@@ -160,16 +159,16 @@ namespace UnitySourceEngine
         private void ReadFaceMeshes(MDLParser mdl, VVDParser vvd, VTXParser vtx, BSPParser bspParser, VPKParser vpkParser)
         {
             int textureIndex = 0;
-            if (mdl.bodyParts.Length == vtx.bodyParts.Length)
+            if (this.mdl.bodyParts.Length == this.vtx.bodyParts.Length)
             {
-                for (int bodyPartIndex = 0; bodyPartIndex < mdl.bodyParts.Length; bodyPartIndex++)
+                for (int bodyPartIndex = 0; bodyPartIndex < this.mdl.bodyParts.Length; bodyPartIndex++)
                 {
-                    for (int modelIndex = 0; modelIndex < mdl.bodyParts[bodyPartIndex].models.Length; modelIndex++)
+                    for (int modelIndex = 0; modelIndex < this.mdl.bodyParts[bodyPartIndex].models.Length; modelIndex++)
                     {
                         //int currentPosition = 0;
-                        for (int meshIndex = 0; meshIndex < mdl.bodyParts[bodyPartIndex].models[modelIndex].theMeshes.Length; meshIndex++)
+                        for (int meshIndex = 0; meshIndex < this.mdl.bodyParts[bodyPartIndex].models[modelIndex].meshes.Length; meshIndex++)
                         {
-                            int rootLodIndex = mdl.header1.rootLod;
+                            int rootLodIndex = this.mdl.header1.rootLod;
                             //int rootLodIndex = 0;
                             //int rootLodCount = 1;
                             //if (mdl.header1.numAllowedRootLods == 0)
@@ -177,7 +176,7 @@ namespace UnitySourceEngine
 
                             FaceMesh currentFace = new FaceMesh();
 
-                            int verticesStartIndex = mdl.bodyParts[bodyPartIndex].models[modelIndex].theMeshes[meshIndex].vertexIndexStart;
+                            int verticesStartIndex = this.mdl.bodyParts[bodyPartIndex].models[modelIndex].meshes[meshIndex].vertexIndexStart;
                             int vertexCount = 0;
                             //int vertexCount = mdl.bodyParts[bodyPartIndex].models[modelIndex].theMeshes[meshIndex].vertexCount;
                             //int vertexCount = mdl.bodyParts[bodyPartIndex].models[modelIndex].theMeshes[meshIndex].vertexData.lodVertexCount[rootLodIndex];
@@ -186,12 +185,12 @@ namespace UnitySourceEngine
                             //    vertexCount += mdl.bodyParts[bodyPartIndex].models[modelIndex].theMeshes[meshIndex].vertexData.lodVertexCount[i];
 
                             int trianglesCount = 0;
-                            for (int stripGroupIndex = 0; stripGroupIndex < vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].stripGroupCount; stripGroupIndex++)
+                            for (int stripGroupIndex = 0; stripGroupIndex < this.vtx.bodyParts[bodyPartIndex].vtxModels[modelIndex].vtxModelLods[rootLodIndex].vtxMeshes[meshIndex].stripGroupCount; stripGroupIndex++)
                             {
-                                var currentStripGroup = vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups[stripGroupIndex];
-                                for (int stripIndex = 0; stripIndex < currentStripGroup.theVtxStrips.Length; stripIndex++)
+                                var currentStripGroup = this.vtx.bodyParts[bodyPartIndex].vtxModels[modelIndex].vtxModelLods[rootLodIndex].vtxMeshes[meshIndex].vtxStripGroups[stripGroupIndex];
+                                for (int stripIndex = 0; stripIndex < currentStripGroup.vtxStrips.Length; stripIndex++)
                                 {
-                                    var currentStrip = currentStripGroup.theVtxStrips[stripIndex];
+                                    var currentStrip = currentStripGroup.vtxStrips[stripIndex];
                                     if (((StripHeaderFlags_t)currentStrip.flags & StripHeaderFlags_t.STRIP_IS_TRILIST) > 0)
                                         trianglesCount += currentStrip.indexCount;
                                 }
@@ -202,24 +201,24 @@ namespace UnitySourceEngine
                             int trianglesIndex = 0;
                             //for (int countUpLodIndex = 0; countUpLodIndex <= rootLodIndex; countUpLodIndex++)
                             //{
-                            for (int stripGroupIndex = 0; stripGroupIndex < vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].stripGroupCount; stripGroupIndex++)
+                            for (int stripGroupIndex = 0; stripGroupIndex < this.vtx.bodyParts[bodyPartIndex].vtxModels[modelIndex].vtxModelLods[rootLodIndex].vtxMeshes[meshIndex].stripGroupCount; stripGroupIndex++)
                             {
                                 //var currentStripGroup = vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups[0];
-                                var currentStripGroup = vtx.bodyParts[bodyPartIndex].theVtxModels[modelIndex].theVtxModelLods[rootLodIndex].theVtxMeshes[meshIndex].theVtxStripGroups[stripGroupIndex];
+                                var currentStripGroup = this.vtx.bodyParts[bodyPartIndex].vtxModels[modelIndex].vtxModelLods[rootLodIndex].vtxMeshes[meshIndex].vtxStripGroups[stripGroupIndex];
                                 //int trianglesCount = currentStripGroup.theVtxIndices.Length;
                                 //int[] triangles = new int[trianglesCount];
 
-                                for (int stripIndex = 0; stripIndex < currentStripGroup.theVtxStrips.Length; stripIndex++)
+                                for (int stripIndex = 0; stripIndex < currentStripGroup.vtxStrips.Length; stripIndex++)
                                 {
-                                    var currentStrip = currentStripGroup.theVtxStrips[stripIndex];
+                                    var currentStrip = currentStripGroup.vtxStrips[stripIndex];
 
                                     if (((StripHeaderFlags_t)currentStrip.flags & StripHeaderFlags_t.STRIP_IS_TRILIST) > 0)
                                     {
                                         for (int indexIndex = 0; indexIndex < currentStrip.indexCount; indexIndex += 3)
                                         {
-                                            int vertexIndexA = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex]].originalMeshVertexIndex;
-                                            int vertexIndexB = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex + 2]].originalMeshVertexIndex;
-                                            int vertexIndexC = verticesStartIndex + currentStripGroup.theVtxVertices[currentStripGroup.theVtxIndices[indexIndex + currentStrip.indexMeshIndex + 1]].originalMeshVertexIndex;
+                                            int vertexIndexA = verticesStartIndex + currentStripGroup.vtxVertices[currentStripGroup.vtxIndices[indexIndex + currentStrip.indexMeshIndex]].originalMeshVertexIndex;
+                                            int vertexIndexB = verticesStartIndex + currentStripGroup.vtxVertices[currentStripGroup.vtxIndices[indexIndex + currentStrip.indexMeshIndex + 2]].originalMeshVertexIndex;
+                                            int vertexIndexC = verticesStartIndex + currentStripGroup.vtxVertices[currentStripGroup.vtxIndices[indexIndex + currentStrip.indexMeshIndex + 1]].originalMeshVertexIndex;
 
                                             vertexCount = Mathf.Max(vertexCount, vertexIndexA, vertexIndexB, vertexIndexC);
                                             //if (vertexIndexA < vertices.Length && vertexIndexB < vertices.Length && vertexIndexC < vertices.Length)
@@ -247,16 +246,16 @@ namespace UnitySourceEngine
 
                             for (int verticesIndex = 0; verticesIndex < vertices.Length; verticesIndex++)
                             {
-                                vertices[verticesIndex] = vvd.vertices[verticesIndex].m_vecPosition;
-                                normals[verticesIndex] = vvd.vertices[verticesIndex].m_vecNormal;
-                                uv[verticesIndex] = vvd.vertices[verticesIndex].m_vecTexCoord;
+                                vertices[verticesIndex] = this.vvd.vertices[verticesIndex].m_vecPosition;
+                                normals[verticesIndex] = this.vvd.vertices[verticesIndex].m_vecNormal;
+                                uv[verticesIndex] = this.vvd.vertices[verticesIndex].m_vecTexCoord;
                             }
 
                             Debug.Assert(triangles.Length % 3 == 0, "SourceModel: Triangles not a multiple of three for " + modelPath);
-                            if (mdl.header1.includemodel_count > 0)
-                                Debug.LogWarning("SourceModel: Include model count greater than zero (" + mdl.header1.includemodel_count + ", " + mdl.header1.includemodel_index + ") for " + modelPath);
-                            if (vvd.header.numFixups > 0)
-                                Debug.LogWarning("SourceModel: " + vvd.header.numFixups + " fixups found for " + modelPath);
+                            if (this.mdl.header1.includemodel_count > 0)
+                                Debug.LogWarning("SourceModel: Include model count greater than zero (" + this.mdl.header1.includemodel_count + ", " + this.mdl.header1.includemodel_index + ") for " + modelPath);
+                            if (this.vvd.header.numFixups > 0)
+                                Debug.LogWarning("SourceModel: " + this.vvd.header.numFixups + " fixups found for " + modelPath);
 
                             MeshHelpers.MeshData meshData;
 
@@ -282,9 +281,9 @@ namespace UnitySourceEngine
                             currentFace.meshData = meshData;
 
                             string textureName = "";
-                            string texturePath = mdl.texturePaths[0].Replace("\\", "/").ToLower();
-                            if (textureIndex < mdl.textures.Length)
-                                textureName = mdl.textures[textureIndex].name.Replace("\\", "/").ToLower();
+                            string texturePath = this.mdl.texturePaths[0].Replace("\\", "/").ToLower();
+                            if (textureIndex < this.mdl.textures.Length)
+                                textureName = this.mdl.textures[textureIndex].name.Replace("\\", "/").ToLower();
                             //textureName = mdl.textures[textureIndex].name.Replace("\\", "/").ToLower();
                             if (textureName.IndexOf(texturePath) > -1)
                                 texturePath = "";
@@ -309,7 +308,7 @@ namespace UnitySourceEngine
 
         public GameObject Build()
         {
-            var modelGO = new GameObject(header1.name);
+            var modelGO = new GameObject(mdl.header1.name);
 
             if (faces != null)
                 foreach (FaceMesh faceMesh in faces)

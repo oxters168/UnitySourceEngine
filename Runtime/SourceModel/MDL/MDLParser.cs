@@ -7,17 +7,6 @@ namespace UnitySourceEngine
 {
     public class MDLParser : IDisposable
     {
-        public string name;
-        public mstudiobone_t[] bones;
-        public mstudiobodyparts_t[] bodyParts;
-        public mstudioattachment_t[] attachments;
-        public mstudioanimdesc_t[] animDescs;
-        public mstudiotexture_t[] textures;
-        public string[] texturePaths;
-
-        public studiohdr_t header1;
-        public studiohdr2_t header2;
-
         private long fileBeginOffset;
 
         public MDLParser()
@@ -41,49 +30,54 @@ namespace UnitySourceEngine
         }
         protected virtual void Dispose(bool disposing)
         {
-            if (disposing)
-            {
-                if (bones != null)
-                    foreach (var bone in bones)
-                        bone?.Dispose();
-                bones = null;
-                if (bodyParts != null)
-                    foreach (var bodyPart in bodyParts)
-                        bodyPart?.Dispose();
-                bodyParts = null;
-                if (attachments != null)
-                    foreach (var attachment in attachments)
-                        attachment?.Dispose();
-                attachments = null;
-                if (animDescs != null)
-                    foreach (var animDesc in animDescs)
-                        animDesc?.Dispose();
-                animDescs = null;
-                if (textures != null)
-                    foreach (var texture in textures)
-                        texture?.Dispose();
-                textures = null;
-                texturePaths = null;
-                //header1?.Dispose();
-                //header2?.Dispose();
-            }
+            // if (disposing)
+            // {
+            //     if (mdlData.bones != null)
+            //         foreach (var bone in mdlData.bones)
+            //             bone?.Dispose();
+            //     // bones = null;
+            //     if (mdlData.bodyParts != null)
+            //         foreach (var bodyPart in mdlData.bodyParts)
+            //             bodyPart?.Dispose();
+            //     // bodyParts = null;
+            //     if (mdlData.attachments != null)
+            //         foreach (var attachment in mdlData.attachments)
+            //             attachment?.Dispose();
+            //     // attachments = null;
+            //     if (mdlData.animDescs != null)
+            //         foreach (var animDesc in mdlData.animDescs)
+            //             animDesc?.Dispose();
+            //     // animDescs = null;
+            //     if (mdlData.textures != null)
+            //         foreach (var texture in mdlData.textures)
+            //             texture?.Dispose();
+            //     // textures = null;
+            //     // texturePaths = null;
+            //     //header1?.Dispose();
+            //     //header2?.Dispose();
+            // }
         }
 
-        public void ParseHeader(Stream stream, long offsetPosition = 0)
+        // public void ParseHeader(Stream stream, long offsetPosition = 0)
+        // {
+        //     fileBeginOffset = offsetPosition;
+
+        //     mdlData.SetHeader1(ParseHeader1(stream, offsetPosition));
+        //     mdlData.SetHeader2(ParseHeader2(stream));
+        // }
+        public MDLData Parse(Stream stream, long offsetPosition = 0)
         {
             fileBeginOffset = offsetPosition;
 
-            header1 = ParseHeader1(stream, offsetPosition);
-            header2 = ParseHeader2(stream);
-        }
-        public void Parse(Stream stream, long offsetPosition = 0)
-        {
-            fileBeginOffset = offsetPosition;
+            MDLData mdlData = new MDLData();
+            mdlData.header1 = ParseHeader1(stream, offsetPosition);
+            mdlData.header2 = ParseHeader2(stream);
 
-            ParseBones(stream);
-            ParseBodyParts(stream);
-            ParseTextures(stream);
-            ParseTexturePaths(stream);
+            mdlData.bones = ParseBones(stream, fileBeginOffset, mdlData.header1);
+            mdlData.bodyParts = ParseBodyParts(stream, fileBeginOffset, mdlData.header1);
+            mdlData.textures = ParseTextures(stream, fileBeginOffset, mdlData.header1);
+            mdlData.texturePaths = ParseTexturePaths(stream, fileBeginOffset, mdlData.header1);
+            return mdlData;
         }
         private static studiohdr_t ParseHeader1(Stream stream, long fileBeginOffset)
         {
@@ -312,8 +306,9 @@ namespace UnitySourceEngine
             return parsed;
         }
 
-        private mstudiobone_t[] ParseBones(Stream stream)
+        private static mstudiobone_t[] ParseBones(Stream stream, long fileBeginOffset, studiohdr_t header1)
         {
+            mstudiobone_t[] bones = null;
             if (header1.bone_count >= 0)
             {
                 long savePosition = fileBeginOffset + header1.bone_offset;
@@ -392,8 +387,9 @@ namespace UnitySourceEngine
             return bones;
         }
 
-        private mstudiobodyparts_t[] ParseBodyParts(Stream stream)
+        private static mstudiobodyparts_t[] ParseBodyParts(Stream stream, long fileBeginOffset, studiohdr_t header1)
         {
+            mstudiobodyparts_t[] bodyParts = null;
             if (header1.bodypart_count >= 0)
             {
                 long nextBodyPartPosition = fileBeginOffset + header1.bodypart_offset;
@@ -420,190 +416,195 @@ namespace UnitySourceEngine
                     }
                     else bodyParts[i].name = "";
 
-                    ParseModels(stream, bodyPartPosition, bodyParts[i]);
+                    bodyParts[i].models = ParseModels(stream, bodyPartPosition, bodyParts[i].modelOffset, bodyParts[i].modelCount);
                 }
             }
 
             return bodyParts;
         }
-        private void ParseModels(Stream stream, long bodyPartPosition, mstudiobodyparts_t bodyPart)
+        private static mstudiomodel_t[] ParseModels(Stream stream, long bodyPartPosition, int modelOffset, int modelCount)
         {
-            if (bodyPart.modelCount >= 0)
+            mstudiomodel_t[] models = null;
+            if (modelCount >= 0)
             {
-                long nextModelPosition = bodyPartPosition + bodyPart.modelOffset;
-                bodyPart.models = new mstudiomodel_t[bodyPart.modelCount];
-                for (int i = 0; i < bodyPart.models.Length; i++)
+                long nextModelPosition = bodyPartPosition + modelOffset;
+                models = new mstudiomodel_t[modelCount];
+                for (int i = 0; i < models.Length; i++)
                 {
                     stream.Position = nextModelPosition;
                     long modelPosition = nextModelPosition;
 
-                    bodyPart.models[i] = new mstudiomodel_t();
+                    models[i] = new mstudiomodel_t();
 
-                    bodyPart.models[i].name = new char[64];
-                    for (int j = 0; j < bodyPart.models[i].name.Length; j++)
+                    var name = new char[64];
+                    for (int j = 0; j < name.Length; j++)
+                        name[j] = DataParser.ReadChar(stream);
+                    models[i].name = new string(name).Replace("\0", "");
+                    models[i].type = DataParser.ReadInt(stream);
+                    models[i].boundingRadius = DataParser.ReadFloat(stream);
+                    models[i].meshCount = DataParser.ReadInt(stream);
+                    models[i].meshOffset = DataParser.ReadInt(stream);
+                    models[i].vertexCount = DataParser.ReadInt(stream);
+                    models[i].vertexOffset = DataParser.ReadInt(stream);
+                    models[i].tangentOffset = DataParser.ReadInt(stream);
+                    models[i].attachmentCount = DataParser.ReadInt(stream);
+                    models[i].attachmentOffset = DataParser.ReadInt(stream);
+                    models[i].eyeballCount = DataParser.ReadInt(stream);
+                    models[i].eyeballOffset = DataParser.ReadInt(stream);
+
+                    models[i].vertexData = new mstudio_modelvertexdata_t();
+                    models[i].vertexData.vertexDataP = DataParser.ReadInt(stream);
+                    models[i].vertexData.tangentDataP = DataParser.ReadInt(stream);
+
+                    models[i].unused = new int[8];
+                    for (int j = 0; j < models[i].unused.Length; j++)
                     {
-                        bodyPart.models[i].name[j] = DataParser.ReadChar(stream);
-                    }
-                    bodyPart.models[i].type = DataParser.ReadInt(stream);
-                    bodyPart.models[i].boundingRadius = DataParser.ReadFloat(stream);
-                    bodyPart.models[i].meshCount = DataParser.ReadInt(stream);
-                    bodyPart.models[i].meshOffset = DataParser.ReadInt(stream);
-                    bodyPart.models[i].vertexCount = DataParser.ReadInt(stream);
-                    bodyPart.models[i].vertexOffset = DataParser.ReadInt(stream);
-                    bodyPart.models[i].tangentOffset = DataParser.ReadInt(stream);
-                    bodyPart.models[i].attachmentCount = DataParser.ReadInt(stream);
-                    bodyPart.models[i].attachmentOffset = DataParser.ReadInt(stream);
-                    bodyPart.models[i].eyeballCount = DataParser.ReadInt(stream);
-                    bodyPart.models[i].eyeballOffset = DataParser.ReadInt(stream);
-
-                    bodyPart.models[i].vertexData = new mstudio_modelvertexdata_t();
-                    bodyPart.models[i].vertexData.vertexDataP = DataParser.ReadInt(stream);
-                    bodyPart.models[i].vertexData.tangentDataP = DataParser.ReadInt(stream);
-
-                    bodyPart.models[i].unused = new int[8];
-                    for (int j = 0; j < bodyPart.models[i].unused.Length; j++)
-                    {
-                        bodyPart.models[i].unused[j] = DataParser.ReadInt(stream);
+                        models[i].unused[j] = DataParser.ReadInt(stream);
                     }
 
                     nextModelPosition = stream.Position;
 
-                    ParseEyeballs(stream, modelPosition, bodyPart.models[i]);
-                    ParseMeshes(stream, modelPosition, bodyPart.models[i]);
+                    models[i].eyeballs = ParseEyeballs(stream, modelPosition, models[i].eyeballOffset, models[i].eyeballCount);
+                    models[i].meshes = ParseMeshes(stream, modelPosition, models[i].meshOffset, models[i].meshCount, models[i].eyeballs);
                 }
             }
+            return models;
         }
-        private void ParseEyeballs(Stream stream, long modelPosition, mstudiomodel_t model)
+        private static mstudioeyeball_t[] ParseEyeballs(Stream stream, long modelPosition, int eyeballOffset, int eyeballCount)
         {
-            if (model.eyeballCount >= 0 && model.eyeballOffset != 0)
+            mstudioeyeball_t[] eyeballs = null;
+            if (eyeballCount >= 0 && eyeballOffset != 0)
             {
-                model.theEyeballs = new mstudioeyeball_t[model.eyeballCount];
+                eyeballs = new mstudioeyeball_t[eyeballCount];
 
-                long nextEyeballPosition = modelPosition + model.eyeballOffset;
-                for (int i = 0; i < model.theEyeballs.Length; i++)
+                long nextEyeballPosition = modelPosition + eyeballOffset;
+                for (int i = 0; i < eyeballs.Length; i++)
                 {
                     stream.Position = nextEyeballPosition;
                     long eyeballPosition = nextEyeballPosition;
 
-                    model.theEyeballs[i] = new mstudioeyeball_t();
+                    eyeballs[i] = new mstudioeyeball_t();
 
-                    model.theEyeballs[i].nameOffset = DataParser.ReadInt(stream);
-                    model.theEyeballs[i].boneIndex = DataParser.ReadInt(stream);
-                    model.theEyeballs[i].org = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
-                    model.theEyeballs[i].zOffset = DataParser.ReadFloat(stream);
-                    model.theEyeballs[i].radius = DataParser.ReadFloat(stream);
-                    model.theEyeballs[i].up = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
-                    model.theEyeballs[i].forward = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
-                    model.theEyeballs[i].texture = DataParser.ReadInt(stream);
+                    eyeballs[i].nameOffset = DataParser.ReadInt(stream);
+                    eyeballs[i].boneIndex = DataParser.ReadInt(stream);
+                    eyeballs[i].org = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
+                    eyeballs[i].zOffset = DataParser.ReadFloat(stream);
+                    eyeballs[i].radius = DataParser.ReadFloat(stream);
+                    eyeballs[i].up = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
+                    eyeballs[i].forward = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
+                    eyeballs[i].texture = DataParser.ReadInt(stream);
 
-                    model.theEyeballs[i].unused1 = DataParser.ReadInt(stream);
-                    model.theEyeballs[i].irisScale = DataParser.ReadFloat(stream);
-                    model.theEyeballs[i].unused2 = DataParser.ReadInt(stream);
+                    eyeballs[i].unused1 = DataParser.ReadInt(stream);
+                    eyeballs[i].irisScale = DataParser.ReadFloat(stream);
+                    eyeballs[i].unused2 = DataParser.ReadInt(stream);
 
-                    model.theEyeballs[i].upperFlexDesc = new int[3];
-                    model.theEyeballs[i].lowerFlexDesc = new int[3];
-                    model.theEyeballs[i].upperTarget = new double[3];
-                    model.theEyeballs[i].lowerTarget = new double[3];
+                    eyeballs[i].upperFlexDesc = new int[3];
+                    eyeballs[i].lowerFlexDesc = new int[3];
+                    eyeballs[i].upperTarget = new double[3];
+                    eyeballs[i].lowerTarget = new double[3];
 
-                    model.theEyeballs[i].upperFlexDesc[0] = DataParser.ReadInt(stream);
-                    model.theEyeballs[i].upperFlexDesc[1] = DataParser.ReadInt(stream);
-                    model.theEyeballs[i].upperFlexDesc[2] = DataParser.ReadInt(stream);
-                    model.theEyeballs[i].lowerFlexDesc[0] = DataParser.ReadInt(stream);
-                    model.theEyeballs[i].lowerFlexDesc[1] = DataParser.ReadInt(stream);
-                    model.theEyeballs[i].lowerFlexDesc[2] = DataParser.ReadInt(stream);
-                    model.theEyeballs[i].upperTarget[0] = DataParser.ReadFloat(stream);
-                    model.theEyeballs[i].upperTarget[1] = DataParser.ReadFloat(stream);
-                    model.theEyeballs[i].upperTarget[2] = DataParser.ReadFloat(stream);
-                    model.theEyeballs[i].lowerTarget[0] = DataParser.ReadFloat(stream);
-                    model.theEyeballs[i].lowerTarget[1] = DataParser.ReadFloat(stream);
-                    model.theEyeballs[i].lowerTarget[2] = DataParser.ReadFloat(stream);
+                    eyeballs[i].upperFlexDesc[0] = DataParser.ReadInt(stream);
+                    eyeballs[i].upperFlexDesc[1] = DataParser.ReadInt(stream);
+                    eyeballs[i].upperFlexDesc[2] = DataParser.ReadInt(stream);
+                    eyeballs[i].lowerFlexDesc[0] = DataParser.ReadInt(stream);
+                    eyeballs[i].lowerFlexDesc[1] = DataParser.ReadInt(stream);
+                    eyeballs[i].lowerFlexDesc[2] = DataParser.ReadInt(stream);
+                    eyeballs[i].upperTarget[0] = DataParser.ReadFloat(stream);
+                    eyeballs[i].upperTarget[1] = DataParser.ReadFloat(stream);
+                    eyeballs[i].upperTarget[2] = DataParser.ReadFloat(stream);
+                    eyeballs[i].lowerTarget[0] = DataParser.ReadFloat(stream);
+                    eyeballs[i].lowerTarget[1] = DataParser.ReadFloat(stream);
+                    eyeballs[i].lowerTarget[2] = DataParser.ReadFloat(stream);
 
-                    model.theEyeballs[i].upperLidFlexDesc = DataParser.ReadInt(stream);
-                    model.theEyeballs[i].lowerLidFlexDesc = DataParser.ReadInt(stream);
+                    eyeballs[i].upperLidFlexDesc = DataParser.ReadInt(stream);
+                    eyeballs[i].lowerLidFlexDesc = DataParser.ReadInt(stream);
 
-                    model.theEyeballs[i].unused = new int[4];
-                    for (int j = 0; j < model.theEyeballs[i].unused.Length; j++)
+                    eyeballs[i].unused = new int[4];
+                    for (int j = 0; j < eyeballs[i].unused.Length; j++)
                     {
-                        model.theEyeballs[i].unused[j] = DataParser.ReadInt(stream);
+                        eyeballs[i].unused[j] = DataParser.ReadInt(stream);
                     }
 
-                    model.theEyeballs[i].eyeballIsNonFacs = DataParser.ReadByte(stream);
+                    eyeballs[i].eyeballIsNonFacs = DataParser.ReadByte(stream);
 
-                    model.theEyeballs[i].unused3 = new char[3];
-                    for (int j = 0; j < model.theEyeballs[i].unused3.Length; j++)
+                    eyeballs[i].unused3 = new char[3];
+                    for (int j = 0; j < eyeballs[i].unused3.Length; j++)
                     {
-                        model.theEyeballs[i].unused3[j] = DataParser.ReadChar(stream);
+                        eyeballs[i].unused3[j] = DataParser.ReadChar(stream);
                     }
-                    model.theEyeballs[i].unused4 = new int[7];
-                    for (int j = 0; j < model.theEyeballs[i].unused4.Length; j++)
+                    eyeballs[i].unused4 = new int[7];
+                    for (int j = 0; j < eyeballs[i].unused4.Length; j++)
                     {
-                        model.theEyeballs[i].unused4[j] = DataParser.ReadInt(stream);
+                        eyeballs[i].unused4[j] = DataParser.ReadInt(stream);
                     }
 
                     //Set the default value to -1 to distinguish it from value assigned to it by ReadMeshes()
-                    model.theEyeballs[i].theTextureIndex = -1;
+                    eyeballs[i].theTextureIndex = -1;
 
                     nextEyeballPosition = stream.Position;
 
-                    if (model.theEyeballs[i].nameOffset != 0)
+                    if (eyeballs[i].nameOffset != 0)
                     {
-                        stream.Position = eyeballPosition + model.theEyeballs[i].nameOffset;
+                        stream.Position = eyeballPosition + eyeballs[i].nameOffset;
 
-                        model.theEyeballs[i].name = DataParser.ReadNullTerminatedString(stream);
+                        eyeballs[i].name = DataParser.ReadNullTerminatedString(stream);
                     }
-                    else model.theEyeballs[i].name = "";
+                    else eyeballs[i].name = "";
                 }
             }
-        }
-        private void ParseMeshes(Stream stream, long modelPosition, mstudiomodel_t model)
-        {
-            if (model.meshCount >= 0)
-            {
-                long nextMeshPosition = modelPosition + model.meshOffset;
-                model.theMeshes = new mstudiomesh_t[model.meshCount];
 
-                for (int i = 0; i < model.theMeshes.Length; i++)
+            return eyeballs;
+        }
+        private static mstudiomesh_t[] ParseMeshes(Stream stream, long modelPosition, int meshOffset, int meshCount, mstudioeyeball_t[] eyeballs)
+        {
+            mstudiomesh_t[] meshes = null;
+            if (meshCount >= 0)
+            {
+                long nextMeshPosition = modelPosition + meshOffset;
+                meshes = new mstudiomesh_t[meshCount];
+
+                for (int i = 0; i < meshes.Length; i++)
                 {
                     stream.Position = nextMeshPosition;
                     long meshPosition = nextMeshPosition;
 
-                    model.theMeshes[i] = new mstudiomesh_t();
+                    meshes[i] = new mstudiomesh_t();
 
-                    model.theMeshes[i].materialIndex = DataParser.ReadInt(stream);
-                    model.theMeshes[i].modelOffset = DataParser.ReadInt(stream);
-                    model.theMeshes[i].vertexCount = DataParser.ReadInt(stream);
-                    model.theMeshes[i].vertexIndexStart = DataParser.ReadInt(stream);
-                    model.theMeshes[i].flexCount = DataParser.ReadInt(stream);
-                    model.theMeshes[i].flexOffset = DataParser.ReadInt(stream);
-                    model.theMeshes[i].materialType = DataParser.ReadInt(stream);
-                    model.theMeshes[i].materialParam = DataParser.ReadInt(stream);
-                    model.theMeshes[i].id = DataParser.ReadInt(stream);
-                    model.theMeshes[i].center = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
+                    meshes[i].materialIndex = DataParser.ReadInt(stream);
+                    meshes[i].modelOffset = DataParser.ReadInt(stream);
+                    meshes[i].vertexCount = DataParser.ReadInt(stream);
+                    meshes[i].vertexIndexStart = DataParser.ReadInt(stream);
+                    meshes[i].flexCount = DataParser.ReadInt(stream);
+                    meshes[i].flexOffset = DataParser.ReadInt(stream);
+                    meshes[i].materialType = DataParser.ReadInt(stream);
+                    meshes[i].materialParam = DataParser.ReadInt(stream);
+                    meshes[i].id = DataParser.ReadInt(stream);
+                    meshes[i].center = new Vector3(DataParser.ReadFloat(stream), DataParser.ReadFloat(stream), DataParser.ReadFloat(stream));
 
-                    model.theMeshes[i].vertexData = new mstudio_meshvertexdata_t();
-                    model.theMeshes[i].vertexData.modelVertexDataP = DataParser.ReadInt(stream);
-                    model.theMeshes[i].vertexData.lodVertexCount = new int[8];
-                    for (int j = 0; j < model.theMeshes[i].vertexData.lodVertexCount.Length; j++)
+                    meshes[i].vertexData = new mstudio_meshvertexdata_t();
+                    meshes[i].vertexData.modelVertexDataP = DataParser.ReadInt(stream);
+                    meshes[i].vertexData.lodVertexCount = new int[8];
+                    for (int j = 0; j < meshes[i].vertexData.lodVertexCount.Length; j++)
                     {
-                        model.theMeshes[i].vertexData.lodVertexCount[j] = DataParser.ReadInt(stream);
+                        meshes[i].vertexData.lodVertexCount[j] = DataParser.ReadInt(stream);
                     }
 
-                    model.theMeshes[i].unused = new int[8];
-                    for (int j = 0; j < model.theMeshes[i].unused.Length; j++)
+                    meshes[i].unused = new int[8];
+                    for (int j = 0; j < meshes[i].unused.Length; j++)
                     {
-                        model.theMeshes[i].unused[j] = DataParser.ReadInt(stream);
+                        meshes[i].unused[j] = DataParser.ReadInt(stream);
                     }
 
-                    if (model.theMeshes[i].materialType == 1)
+                    if (meshes[i].materialType == 1)
                     {
-                        model.theEyeballs[model.theMeshes[i].materialParam].theTextureIndex = model.theMeshes[i].materialIndex;
+                        eyeballs[meshes[i].materialParam].theTextureIndex = meshes[i].materialIndex;
                     }
 
                     nextMeshPosition = stream.Position;
 
-                    if (model.theMeshes[i].flexCount > 0 && model.theMeshes[i].flexOffset != 0)
+                    if (meshes[i].flexCount > 0 && meshes[i].flexOffset != 0)
                     {
-                        ParseFlexes(meshPosition, model.theMeshes[i]);
+                        meshes[i].flexes = ParseFlexes(stream, meshPosition, meshes[i].flexOffset, meshes[i].flexCount);
                     }
 
                     //stream.Position = model.theMeshes[i].vertexData.modelVertexDataP + model.theMeshes[i].vertexIndexStart;
@@ -615,14 +616,33 @@ namespace UnitySourceEngine
                     //}
                 }
             }
-        }
-        private void ParseFlexes(long meshPosition, mstudiomesh_t mesh)
-        {
 
+            return meshes;
+        }
+        private static mstudioflex_t[] ParseFlexes(Stream stream, long meshPosition, int flexOffset, int flexCount)
+        {
+            mstudioflex_t[] flexes = null;
+            if (flexCount >= 0)
+            {
+                long nextFlexPosition = meshPosition + flexOffset;
+                flexes = new mstudioflex_t[flexCount];
+
+                for (int i = 0; i < flexes.Length; i++)
+                {
+                    stream.Position = nextFlexPosition;
+                    long flexPosition = nextFlexPosition;
+
+                    flexes[i] = new mstudioflex_t();
+
+                    //TODO
+                }
+            }
+            return flexes;
         }
 
-        private mstudioattachment_t[] ParseAttachments(Stream stream)
+        private static mstudioattachment_t[] ParseAttachments(Stream stream, long fileBeginOffset, studiohdr_t header1)
         {
+            mstudioattachment_t[] attachments = null;
             if (header1.attachment_count >= 0)
             {
                 long nextAttachmentPosition = fileBeginOffset + header1.attachment_offset;
@@ -635,11 +655,10 @@ namespace UnitySourceEngine
 
                     if (header1.version == 10)
                     {
-                        attachments[i].builtName = new char[32];
-                        for (int j = 0; j < attachments[i].builtName.Length; j++)
-                        {
-                            attachments[i].builtName[j] = DataParser.ReadChar(stream);
-                        }
+                        var name = new char[64];
+                        for (int j = 0; j < name.Length; j++)
+                            name[j] = DataParser.ReadChar(stream);
+                        attachments[i].name = new string(name).Replace("\0", "");
                         attachments[i].type = DataParser.ReadInt(stream);
                         attachments[i].bone = DataParser.ReadInt(stream);
 
@@ -687,8 +706,9 @@ namespace UnitySourceEngine
             return attachments;
         }
 
-        private mstudioanimdesc_t[] ParseAnimationDescs(Stream stream)
+        private static mstudioanimdesc_t[] ParseAnimationDescs(Stream stream, long fileBeginOffset, studiohdr_t header1)
         {
+            mstudioanimdesc_t[] animDescs = null;
             if (header1.localanim_count >= 0)
             {
                 long animDescFileByteSize = 0;
@@ -803,7 +823,7 @@ namespace UnitySourceEngine
 
             return animDescs;
         }
-        private void ParseMdlAnimationSection(Stream stream, long sectionPosition, mstudioanimdesc_t animDesc)
+        private static void ParseMdlAnimationSection(Stream stream, long sectionPosition, mstudioanimdesc_t animDesc)
         {
             stream.Position = sectionPosition;
 
@@ -812,13 +832,14 @@ namespace UnitySourceEngine
             animSection.animOffset = DataParser.ReadInt(stream);
             animDesc.sections.Add(animSection);
         }
-        private void ParseMdlAnimation(long animPosition, mstudioanimdesc_t animDesc, int sectionFrameCount, List<mstudioanim_t> sectionOfAnims)
+        private static void ParseMdlAnimation(long animPosition, mstudioanimdesc_t animDesc, int sectionFrameCount, List<mstudioanim_t> sectionOfAnims)
         {
 
         }
 
-        private mstudiotexture_t[] ParseTextures(Stream stream)
+        private static mstudiotexture_t[] ParseTextures(Stream stream, long fileBeginOffset, studiohdr_t header1)
         {
+            mstudiotexture_t[] textures = null;
             if (header1.texture_count >= 0)
             {
                 long nextTexturePosition = fileBeginOffset + header1.texture_offset;
@@ -857,8 +878,9 @@ namespace UnitySourceEngine
 
             return textures;
         }
-        private string[] ParseTexturePaths(Stream stream)
+        private static string[] ParseTexturePaths(Stream stream, long fileBeginOffset, studiohdr_t header1)
         {
+            string[] texturePaths = null;
             if (header1.texturedir_count >= 0)
             {
                 long nextTextureDirPosition = fileBeginOffset + header1.texturedir_offset;

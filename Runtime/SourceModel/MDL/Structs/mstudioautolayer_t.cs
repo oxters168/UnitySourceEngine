@@ -1,15 +1,15 @@
 ﻿namespace UnitySourceEngine
 {
-    public class mstudioautolayer_t
+    public struct mstudioautolayer_t //40
     {
-        public short sequenceIndex;
-        public short poseIndex;
+        public short sequenceIndex; //2
+        public short poseIndex; //2
 
-        public int flags;
-        public double influenceStart;
-        public double influencePeak;
-        public double influenceTail;
-        public double influenceEnd;
+        public int flags; //4
+        public double influenceStart; //8
+        public double influencePeak; //8
+        public double influenceTail; //8
+        public double influenceEnd; //8
     }
 
     public enum autolayer_flags

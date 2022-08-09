@@ -1,8 +1,8 @@
 ﻿namespace UnitySourceEngine
 {
-    public class mstudio_modelvertexdata_t
+    public struct mstudio_modelvertexdata_t //8 bytes
     {
-        public int vertexDataP;
-        public int tangentDataP;
+        public int vertexDataP; //4 bytes
+        public int tangentDataP; //4 bytes
     }
 }

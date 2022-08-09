@@ -2,20 +2,29 @@
 
 namespace UnitySourceEngine
 {
-    public class SourceVtxMesh
+    public struct SourceVtxMesh
     {
-        public int stripGroupCount;
-        public int stripGroupOffset;
-        public byte flags;
+        public int stripGroupCount; //4
+        public int stripGroupOffset; //4
+        public byte flags; //1
 
-        public SourceVtxStripGroup[] theVtxStripGroups;
+        public SourceVtxStripGroup[] vtxStripGroups;
+
+        public ulong CountBytes()
+        {
+            ulong totalBytes = (ulong)(9);
+            if (vtxStripGroups != null)
+                foreach (var vtxStripGroup in vtxStripGroups)
+                    totalBytes += vtxStripGroup.CountBytes();
+            return totalBytes;
+        }
 
         public void Dispose()
         {
-            if (theVtxStripGroups != null)
-                foreach (SourceVtxStripGroup stripGroup in theVtxStripGroups)
-                    stripGroup?.Dispose();
-            theVtxStripGroups = null;
+            if (vtxStripGroups != null)
+                foreach (var stripGroup in vtxStripGroups)
+                    stripGroup.Dispose();
+            vtxStripGroups = null;
         }
     }
 

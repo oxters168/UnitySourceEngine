@@ -2,24 +2,24 @@
 
 namespace UnitySourceEngine
 {
-    public struct studiohdr_t
+    public struct studiohdr_t //354+(2*n.length) bytes
     {
-        public int id; // Model format ID, such as "IDST" (0x49 0x44 0x53 0x54)
-        public int version; // Format version number, such as 48 (0x30,0x00,0x00,0x00)
-        public int checkSum; // this has to be the same in the phy and vtx files to load!
-        public string name; // The internal name of the model, padding with null bytes.
+        public int id; // Model format ID, such as "IDST" (0x49 0x44 0x53 0x54) //4 bytes
+        public int version; // Format version number, such as 48 (0x30,0x00,0x00,0x00) //4 bytes
+        public int checkSum; // this has to be the same in the phy and vtx files to load! //4 bytes
+        public string name; // The internal name of the model, padding with null bytes. //2*name.length bytes
                             // Typically "my_model.mdl" will have an internal name of "my_model"
-        public int dataLength;  // Data size of MDL file in bytes.
+        public int dataLength;  // Data size of MDL file in bytes. //4 bytes
 
         // A vector is 12 bytes, three 4-byte float-values in a row.
-        public Vector3 eyeposition; // Position of player viewpoint relative to model origin
-        public Vector3 illumposition; // ?? Presumably the point used for lighting when per-vertex lighting is not enabled.
-        public Vector3 hull_min; // Corner of model hull box with the least X/Y/Z values
-        public Vector3 hull_max; // Opposite corner of model hull box
-        public Vector3 view_bbmin; // View Bounding Box Minimum Position
-        public Vector3 view_bbmax; // View Bounding Box Maximum Position
+        public Vector3 eyeposition; // Position of player viewpoint relative to model origin //12 bytes
+        public Vector3 illumposition; // ?? Presumably the point used for lighting when per-vertex lighting is not enabled. //12 bytes
+        public Vector3 hull_min; // Corner of model hull box with the least X/Y/Z values //12 bytes
+        public Vector3 hull_max; // Opposite corner of model hull box //12 bytes
+        public Vector3 view_bbmin; // View Bounding Box Minimum Position //12 bytes
+        public Vector3 view_bbmax; // View Bounding Box Maximum Position //12 bytes
 
-        public int flags; // Binary flags in little-endian order. 
+        public int flags; // Binary flags in little-endian order. //4 bytes
                           // ex (00000001,00000000,00000000,11000000) means flags for position 0, 30, and 31 are set. 
                           // Set model flags section for more information
 
@@ -33,84 +33,84 @@ namespace UnitySourceEngine
          */
 
         // mstudiobone_t
-        public int bone_count;  // Number of data sections (of type mstudiobone_t)
-        public int bone_offset; // Offset of first data section
+        public int bone_count;  // Number of data sections (of type mstudiobone_t) //4 bytes
+        public int bone_offset; // Offset of first data section //4 bytes
 
         // mstudiobonecontroller_t
-        public int bonecontroller_count;
-        public int bonecontroller_offset;
+        public int bonecontroller_count; //4 bytes
+        public int bonecontroller_offset; //4 bytes
 
         // mstudiohitboxset_t
-        public int hitbox_count;
-        public int hitbox_offset;
+        public int hitbox_count; //4 bytes
+        public int hitbox_offset; //4 bytes
 
         // mstudioanimdesc_t
-        public int localanim_count;
-        public int localanim_offset;
+        public int localanim_count; //4 bytes
+        public int localanim_offset; //4 bytes
 
         // mstudioseqdesc_t
-        public int localseq_count;
-        public int localseq_offset;
+        public int localseq_count; //4 bytes
+        public int localseq_offset; //4 bytes
 
-        public int activitylistversion; // ??
-        public int eventsindexed;   // ??
+        public int activitylistversion; // ?? //4 bytes
+        public int eventsindexed;   // ?? //4 bytes
 
         // VMT texture filenames
         // mstudiotexture_t
-        public int texture_count;
-        public int texture_offset;
+        public int texture_count; //4 bytes
+        public int texture_offset; //4 bytes
 
         // This offset points to a series of ints.
         // Each int value, in turn, is an offset relative to the start of this header/the-file,
         // At which there is a null-terminated string.
-        public int texturedir_count;
-        public int texturedir_offset;
+        public int texturedir_count; //4 bytes
+        public int texturedir_offset; //4 bytes
 
         // Each skin-family assigns a texture-id to a skin location
-        public int skinreference_count;
-        public int skinrfamily_count;
-        public int skinreference_index;
+        public int skinreference_count; //4 bytes
+        public int skinrfamily_count; //4 bytes
+        public int skinreference_index; //4 bytes
 
         // mstudiobodyparts_t
-        public int bodypart_count;
-        public int bodypart_offset;
+        public int bodypart_count; //4 bytes
+        public int bodypart_offset; //4 bytes
 
         // Local attachment points		
         // mstudioattachment_t
-        public int attachment_count;
-        public int attachment_offset;
+        public int attachment_count; //4 bytes
+        public int attachment_offset; //4 bytes
 
         // Node values appear to be single bytes, while their names are null-terminated strings.
-        public int localnode_count;
-        public int localnode_index;
-        public int localnode_name_index;
+        public int localnode_count; //4 bytes
+        public int localnode_index; //4 bytes
+        public int localnode_name_index; //4 bytes
 
         // mstudioflexdesc_t
-        public int flexdesc_count;
-        public int flexdesc_index;
+        public int flexdesc_count; //4 bytes
+        public int flexdesc_index; //4 bytes
 
         // mstudioflexcontroller_t
-        public int flexcontroller_count;
-        public int flexcontroller_index;
+        public int flexcontroller_count; //4 bytes
+        public int flexcontroller_index; //4 bytes
 
         // mstudioflexrule_t
-        public int flexrules_count;
-        public int flexrules_index;
+        public int flexrules_count; //4 bytes
+        public int flexrules_index; //4 bytes
 
         // IK probably referse to inverse kinematics
         // mstudioikchain_t
-        public int ikchain_count;
-        public int ikchain_index;
+        public int ikchain_count; //4 bytes
+        public int ikchain_index; //4 bytes
 
         // Information about any "mouth" on the model for speech animation
         // More than one sounds pretty creepy.
         // mstudiomouth_t
-        public int mouths_count;
-        public int mouths_index;
+        public int mouths_count; //4 bytes
+        public int mouths_index; //4 bytes
 
         // mstudioposeparamdesc_t
-        public int localposeparam_count;
-        public int localposeparam_index;
+        public int localposeparam_count; //4 bytes
+        public int localposeparam_index; //4 bytes
 
         /*
          * For anyone trying to follow along, as of this writing,
@@ -119,62 +119,62 @@ namespace UnitySourceEngine
          */
 
         // Surface property value (single null-terminated string)
-        public int surfaceprop_index;
+        public int surfaceprop_index; //4 bytes
 
         // Unusual: In this one index comes first, then count.
         // Key-value data is a series of strings. If you can't find
         // what you're interested in, check the associated PHY file as well.
-        public int keyvalue_index;
-        public int keyvalue_count;
+        public int keyvalue_index; //4 bytes
+        public int keyvalue_count; //4 bytes
 
         // More inverse-kinematics
         // mstudioiklock_t
-        public int iklock_count;
-        public int iklock_index;
+        public int iklock_count; //4 bytes
+        public int iklock_index; //4 bytes
 
 
-        public float mass; // Mass of object (4-bytes)
-        public int contents; // ??
+        public float mass; // Mass of object (4-bytes) //4 bytes
+        public int contents; // ?? //4 bytes
 
         // Other models can be referenced for re-used sequences and animations
         // (See also: The $includemodel QC option.)
         // mstudiomodelgroup_t
-        public int includemodel_count;
-        public int includemodel_index;
+        public int includemodel_count; //4 bytes
+        public int includemodel_index; //4 bytes
 
-        public int virtualModel; // Placeholder for mutable-void*
+        public int virtualModel; // Placeholder for mutable-void* //4 bytes
 
         // mstudioanimblock_t
-        public int animblocks_name_index;
-        public int animblocks_count;
-        public int animblocks_index;
+        public int animblocks_name_index; //4 bytes
+        public int animblocks_count; //4 bytes
+        public int animblocks_index; //4 bytes
 
-        public int animblockModel; // Placeholder for mutable-void*
+        public int animblockModel; // Placeholder for mutable-void* //4 bytes
 
         // Points to a series of bytes?
-        public int bonetablename_index;
+        public int bonetablename_index; //4 bytes
 
-        public int vertex_base; // Placeholder for void*
-        public int offset_base; // Placeholder for void*
+        public int vertex_base; // Placeholder for void* //4 bytes
+        public int offset_base; // Placeholder for void* //4 bytes
 
         // Used with $constantdirectionallight from the QC 
         // Model should have flag #13 set if enabled
-        public byte directionaldotproduct;
+        public byte directionaldotproduct; //1 byte
 
-        public byte rootLod; // Preferred rather than clamped
+        public byte rootLod; // Preferred rather than clamped //1 byte
 
         // 0 means any allowed, N means Lod 0 -> (N-1)
-        public byte numAllowedRootLods;
+        public byte numAllowedRootLods; //1 byte
 
-        public byte unused1; // ??
-        public int unused2; // ??
+        public byte unused1; // ?? //1 byte
+        public int unused2; // ?? //4 bytes
 
         // mstudioflexcontrollerui_t
-        public int flexcontrollerui_count;
-        public int flexcontrollerui_index;
+        public int flexcontrollerui_count; //4 bytes
+        public int flexcontrollerui_index; //4 bytes
 
-        public float vertAnimFixedPointScale;
-        public int surfacePropLookup;
+        public float vertAnimFixedPointScale; //4 bytes
+        public int surfacePropLookup; //4 bytes
 
         /**
          * Offset for additional header information.
@@ -182,9 +182,14 @@ namespace UnitySourceEngine
          * follows this studiohdr_t
          */
         // studiohdr2_t
-        public int studiohdr2index;
+        public int studiohdr2index; //4 bytes
 
-        public int unused3; // ??
+        public int unused3; // ?? //4 bytes
+
+        public ulong CountBytes()
+        {
+            return (ulong)(354 + (!string.IsNullOrEmpty(name) ? 2*name.Length : 0));
+        }
 
         public override string ToString()
         {

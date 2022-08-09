@@ -1,8 +1,8 @@
 ﻿namespace UnitySourceEngine
 {
-    public class SourceVtxBoneStateChange
+    public struct SourceVtxBoneStateChange //8
     {
-        public int hardwareId;
-        public int newBoneId;
+        public int hardwareId; //4
+        public int newBoneId; //4
     }
 }

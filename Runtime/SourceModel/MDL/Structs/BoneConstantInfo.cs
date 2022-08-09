@@ -2,9 +2,9 @@
 
 namespace UnitySourceEngine
 {
-    public class BoneConstantInfo
+    public struct BoneConstantInfo //28
     {
-        public Vector3 theConstantRawPos; //SourceVector48bits
-        public Quaternion theConstantRawRot; //SourceQuaternion48bits
+        public Vector3 theConstantRawPos; //SourceVector48bits //12
+        public Quaternion theConstantRawRot; //SourceQuaternion48bits //16
     }
 }

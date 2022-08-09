@@ -7,12 +7,12 @@ namespace UnitySourceEngine
 {
     public class VVDParser : IDisposable
     {
-        public const int MAX_NUM_LODS = 7, MAX_NUM_BONES_PER_VERT = 3;
-        public vertexFileHeader_t header;
-        public vertexFileFixup_t[] fileFixup;
-        public mstudiovertex_t[] vertices;
+        // public const int MAX_NUM_LODS = 7, MAX_NUM_BONES_PER_VERT = 3;
+        // public vertexFileHeader_t header;
+        // public vertexFileFixup_t[] fileFixup;
+        // public mstudiovertex_t[] vertices;
 
-        private long fileOffsetPosition;
+        private long fileBeginOffset;
 
         public VVDParser()
         {
@@ -35,44 +35,48 @@ namespace UnitySourceEngine
         }
         protected virtual void Dispose(bool disposing)
         {
-            if (disposing)
-            {
-                header.Dispose();
-                fileFixup = null;
+            // if (disposing)
+            // {
+            //     header.Dispose();
+            //     fileFixup = null;
 
-                if (vertices != null)
-                    foreach (var vertex in vertices)
-                        vertex.Dispose();
+            //     if (vertices != null)
+            //         foreach (var vertex in vertices)
+            //             vertex.Dispose();
 
-                vertices = null;
-            }
+            //     vertices = null;
+            // }
         }
 
-        public void ParseHeader(Stream stream, long fileOffset = 0)
-        {
-            fileOffsetPosition = fileOffset;
+        // public void ParseHeader(Stream stream, long fileOffset = 0)
+        // {
+        //     fileOffsetPosition = fileOffset;
 
-            ParseHeader(stream);
+        //     ParseHeader(stream);
+        // }
+        public VVDData Parse(Stream stream, long fileOffset = 0, int rootLod = 0)
+        {
+            fileBeginOffset = fileOffset;
+
+            var vvdData = new VVDData();
+            vvdData.header = ParseHeader(stream, fileBeginOffset);
+
+            vvdData.fileFixup = ParseFixupTable(stream, fileBeginOffset, vvdData.header.fixupTableStart, vvdData.header.numFixups);
+            vvdData.vertices = ParseVertices(stream, fileBeginOffset, rootLod, vvdData);
+            return vvdData;
         }
-        public void Parse(Stream stream, int rootLod = 0, long fileOffset = 0)
+        private static vertexFileHeader_t ParseHeader(Stream stream, long fileBeginOffset)
         {
-            fileOffsetPosition = fileOffset;
+            var header = new vertexFileHeader_t();
 
-            ParseFixupTable(stream);
-            ParseVertices(stream, rootLod);
-        }
-        private void ParseHeader(Stream stream)
-        {
-            header = new vertexFileHeader_t();
-
-            stream.Position = fileOffsetPosition;
+            stream.Position = fileBeginOffset;
 
             header.id = DataParser.ReadInt(stream);
             header.version = DataParser.ReadInt(stream); // MODEL_VERTEX_FILE_VERSION
             header.checksum = DataParser.ReadLong(stream); // same as studiohdr_t, ensures sync
             header.numLODs = DataParser.ReadInt(stream); // num of valid lods
 
-            header.numLODVertices = new int[MAX_NUM_LODS]; // num verts for desired root lod (size is MAX_NUM_LODS = 8)
+            header.numLODVertices = new int[VVDData.MAX_NUM_LODS]; // num verts for desired root lod (size is MAX_NUM_LODS = 8)
             for (int i = 0; i < header.numLODVertices.Length; i++)
             {
                 header.numLODVertices[i] = DataParser.ReadInt(stream);
@@ -82,37 +86,42 @@ namespace UnitySourceEngine
             header.fixupTableStart = DataParser.ReadInt(stream); // offset from base to fixup table
             header.vertexDataStart = DataParser.ReadInt(stream); // offset from base to vertex block
             header.tangentDataStart = DataParser.ReadInt(stream); // offset from base to tangent block
-        }
-        private void ParseFixupTable(Stream stream)
-        {
-            fileFixup = new vertexFileFixup_t[header.numFixups];
 
-            stream.Position = fileOffsetPosition + header.fixupTableStart;
+            return header;
+        }
+        private static vertexFileFixup_t[] ParseFixupTable(Stream stream, long fileBeginOffset, int fixupTableStart, int numFixups)
+        {
+            var fileFixup = new vertexFileFixup_t[numFixups];
+
+            stream.Position = fileBeginOffset + fixupTableStart;
             for (int i = 0; i < fileFixup.Length; i++)
             {
                 fileFixup[i].lod = DataParser.ReadInt(stream); // used to skip culled root lod
                 fileFixup[i].sourceVertexID = DataParser.ReadInt(stream); // absolute index from start of vertex/tangent blocks
                 fileFixup[i].numVertices = DataParser.ReadInt(stream);
             }
+            return fileFixup;
         }
-        private void ParseVertices(Stream stream, int rootLod)
+        private static mstudiovertex_t[] ParseVertices(Stream stream, long fileBeginOffset, int rootLod, VVDData vvd)
         {
+            mstudiovertex_t[] vertices = null;
+
             for (int i = 0; i < rootLod; i++)
-                header.numLODVertices[i] = header.numLODVertices[rootLod];
+                vvd.header.numLODVertices[i] = vvd.header.numLODVertices[rootLod];
 
             //int lodIndex = 0;
 
-            if (header.numLODs > 0)
+            if (vvd.header.numLODs > 0)
             {
                 Func<Stream, mstudiovertex_t> ReadVertexFromStream = (innerStream) =>
                 {
                     mstudiovertex_t vertex = new mstudiovertex_t();
 
-                    vertex.m_BoneWeights.weight = new float[MAX_NUM_BONES_PER_VERT]; //0 + 12 = 12
+                    vertex.m_BoneWeights.weight = new float[VVDData.MAX_NUM_BONES_PER_VERT]; //0 + 12 = 12
                     for (int k = 0; k < vertex.m_BoneWeights.weight.Length; k++)
                         vertex.m_BoneWeights.weight[k] = DataParser.ReadFloat(innerStream);
 
-                    vertex.m_BoneWeights.bone = new char[MAX_NUM_BONES_PER_VERT]; //12 + 12 = 24
+                    vertex.m_BoneWeights.bone = new char[VVDData.MAX_NUM_BONES_PER_VERT]; //12 + 12 = 24
                     for (int k = 0; k < vertex.m_BoneWeights.bone.Length; k++)
                         vertex.m_BoneWeights.bone[k] = DataParser.ReadChar(innerStream);
 
@@ -134,44 +143,46 @@ namespace UnitySourceEngine
                     return vertex;
                 };
 
-                stream.Position = fileOffsetPosition + header.vertexDataStart;
+                stream.Position = fileBeginOffset + vvd.header.vertexDataStart;
 
-                //int vertexCount = header.numLODVertices[0];
+                //int vertexCount = numLODVertices[0];
                 int vertexCount = 0;
-                for (int i = 0; i < header.numLODVertices.Length; i++)
-                    vertexCount += header.numLODVertices[i];
+                for (int i = 0; i < vvd.header.numLODVertices.Length; i++)
+                    vertexCount += vvd.header.numLODVertices[i];
 
                 vertices = new mstudiovertex_t[vertexCount];
                 for (int i = 0; i < vertices.Length; i++)
                     vertices[i] = ReadVertexFromStream(stream);
 
-                if (header.numFixups > 0)
+                if (vvd.header.numFixups > 0)
                 {
                     vertexCount = 0;
-                    for (int fixupIndex = 0; fixupIndex < header.numFixups; fixupIndex++)
+                    for (int fixupIndex = 0; fixupIndex < vvd.header.numFixups; fixupIndex++)
                     {
-                        if (fileFixup[fixupIndex].lod < rootLod)
+                        if (vvd.fileFixup[fixupIndex].lod < rootLod)
                             continue;
 
-                        vertexCount += fileFixup[fixupIndex].numVertices;
+                        vertexCount += vvd.fileFixup[fixupIndex].numVertices;
                     }
 
                     mstudiovertex_t[] oldVertices = vertices;
                     vertices = new mstudiovertex_t[vertexCount];
 
                     int currentIndex = 0;
-                    for (int fixupIndex = 0; fixupIndex < header.numFixups; fixupIndex++)
+                    for (int fixupIndex = 0; fixupIndex < vvd.header.numFixups; fixupIndex++)
                     {
-                        if (fileFixup[fixupIndex].lod < rootLod)
+                        if (vvd.fileFixup[fixupIndex].lod < rootLod)
                             continue;
 
-                        Array.Copy(oldVertices, fileFixup[fixupIndex].sourceVertexID, vertices, currentIndex, fileFixup[fixupIndex].numVertices);
-                        currentIndex += fileFixup[fixupIndex].numVertices;
+                        Array.Copy(oldVertices, vvd.fileFixup[fixupIndex].sourceVertexID, vertices, currentIndex, vvd.fileFixup[fixupIndex].numVertices);
+                        currentIndex += vvd.fileFixup[fixupIndex].numVertices;
                     }
                 }
             }
             else
                 Debug.LogError("VVDParser: Header's numLODs less than or equal to zero");
+            
+            return vertices;
         }
     }
 }

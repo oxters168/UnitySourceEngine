@@ -1,15 +1,20 @@
 ﻿namespace UnitySourceEngine
 {
-    public class mstudio_frame_anim_t
+    public struct mstudio_frame_anim_t
     {
-        public int constantsOffset;
-        public int frameOffset;
-        public int frameLength;
+        public int constantsOffset; //4
+        public int frameOffset; //4
+        public int frameLength; //4
         public int[] unused; //SizeOf 3
 
         public byte[] theBoneFlags;
-        public BoneConstantInfo[] theBoneConstantInfos;
-        public BoneFrameDataInfo[,] theBoneFrameDataInfo;
+        public BoneConstantInfo[] theBoneConstantInfos; //28*length
+        public BoneFrameDataInfo[,] theBoneFrameDataInfo; //40*getlength(0)*getlength(1)
+
+        public ulong CountBytes()
+        {
+            return (ulong)((unused != null ? 4*unused.Length : 0) + (theBoneFlags != null ? theBoneFlags.Length : 0) + (theBoneConstantInfos != null ? 28*theBoneConstantInfos.Length : 0) + (theBoneFrameDataInfo != null ? 40*theBoneFrameDataInfo.GetLength(0)*theBoneFrameDataInfo.GetLength(1) : 0) + 12);
+        }
 
         public void Dispose()
         {

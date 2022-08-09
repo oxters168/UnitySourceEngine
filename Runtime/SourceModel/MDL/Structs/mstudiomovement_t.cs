@@ -2,14 +2,14 @@
 
 namespace UnitySourceEngine
 {
-    public class mstudiomovement_t
+    public struct mstudiomovement_t //56
     {
-        public int endframeIndex;
-        public int motionFlags;
-        public double v0;
-        public double v1;
-        public double angle;
-        public Vector3 vector;
-        public Vector3 position;
+        public int endframeIndex; //4
+        public int motionFlags; //4
+        public double v0; //8
+        public double v1; //8
+        public double angle; //8
+        public Vector3 vector; //12
+        public Vector3 position; //12
     }
 }

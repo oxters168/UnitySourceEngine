@@ -1,23 +1,28 @@
 ﻿namespace UnitySourceEngine
 {
-    public struct studiohdr2_t
+    public struct studiohdr2_t //32+(4*r.length) bytes
     {
         // ??
-        public int srcbonetransform_count;
-        public int srcbonetransform_index;
+        public int srcbonetransform_count; //4 bytes
+        public int srcbonetransform_index; //4 bytes
 
-        public int illumpositionattachmentindex;
+        public int illumpositionattachmentindex; //4 bytes
 
-        public float flMaxEyeDeflection; // If set to 0, then equivalent to cos(30)
+        public float flMaxEyeDeflection; // If set to 0, then equivalent to cos(30) //4 bytes
 
         // mstudiolinearbone_t
-        public int linearbone_index;
+        public int linearbone_index; //4 bytes
 
-        public int sznameindex;
-        public int m_nBoneFlexDriverCount;
-        public int m_nBoneFlexDriverIndex;
+        public int sznameindex; //4 bytes
+        public int m_nBoneFlexDriverCount; //4 bytes
+        public int m_nBoneFlexDriverIndex; //4 bytes
 
-        public int[] reserved;
+        public int[] reserved; //4 * length bytes
+
+        public ulong CountBytes()
+        {
+            return (ulong)(32 + (reserved != null ? 4*reserved.Length : 0));
+        }
 
         public override string ToString()
         {
@@ -30,11 +35,10 @@
             output += "\n_sznameindex(" + sznameindex + ")";
             output += "\n_m_nBoneFlexDriverCount(" + m_nBoneFlexDriverCount + ")";
             output += "\n_m_nBoneFlexDriverIndex(" + m_nBoneFlexDriverIndex + ")";
-            output += "\n_reserved[" + (reserved != null ? reserved.Length.ToString() : "null") + "]";
+            output += "\n_reserved[" + (reserved != null ? reserved.Length.ToString() : "null") + "]:";
             if (reserved != null)
                 for (int i = 0; i < reserved.Length; i++)
-                    output += "\n   [" + i + "]: " + reserved[i];
-
+                    output += "\n    [" + i + "]: " + reserved[i];
             return output;
         }
     }

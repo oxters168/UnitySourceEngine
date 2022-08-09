@@ -1,36 +1,49 @@
 ﻿namespace UnitySourceEngine
 {
-    public class mstudiomodel_t
+    public struct mstudiomodel_t
     {
-        public char[] name;
-        public int type;
-        public float boundingRadius;
-        public int meshCount;
-        public int meshOffset;
-        public int vertexCount;
-        public int vertexOffset;
-        public int tangentOffset;
-        public int attachmentCount;
-        public int attachmentOffset;
-        public int eyeballCount;
-        public int eyeballOffset;
-        public mstudio_modelvertexdata_t vertexData;
-        public int[] unused;
-        public mstudiomesh_t[] theMeshes;
-        public mstudioeyeball_t[] theEyeballs;
+        // public char[] name;
+        public string name; //2*name.length bytes
+        public int type; //4 bytes
+        public float boundingRadius; //4 bytes
+        public int meshCount; //4 bytes
+        public int meshOffset; //4 bytes
+        public int vertexCount; //4 bytes
+        public int vertexOffset; //4 bytes
+        public int tangentOffset; //4 bytes
+        public int attachmentCount; //4 bytes
+        public int attachmentOffset; //4 bytes
+        public int eyeballCount; //4 bytes
+        public int eyeballOffset; //4 bytes
+        public mstudio_modelvertexdata_t vertexData; //8 bytes
+        public int[] unused; //4*unused.length bytes
+        public mstudiomesh_t[] meshes;
+        public mstudioeyeball_t[] eyeballs;
+
+        public ulong CountBytes()
+        {
+            ulong totalBytes = (ulong)((!string.IsNullOrEmpty(name) ? 2*name.Length : 0) + (unused != null ? 4*unused.Length : 0) + 52);
+            if (meshes != null)
+                foreach(var mesh in meshes)
+                    totalBytes += mesh.CountBytes();
+            if (eyeballs != null)
+                foreach(var eyeball in eyeballs)
+                    totalBytes += eyeball.CountBytes();
+            return totalBytes;
+        }
 
         public void Dispose()
         {
             name = null;
             unused = null;
-            if (theMeshes != null)
-                foreach (var mesh in theMeshes)
-                    mesh?.Dispose();
-            theMeshes = null;
-            if (theEyeballs != null)
-                foreach (var eyeball in theEyeballs)
-                    eyeball?.Dispose();
-            theEyeballs = null;
+            if (meshes != null)
+                foreach (var mesh in meshes)
+                    mesh.Dispose();
+            meshes = null;
+            if (eyeballs != null)
+                foreach (var eyeball in eyeballs)
+                    eyeball.Dispose();
+            eyeballs = null;
         }
     }
 }

@@ -3,35 +3,38 @@ using System;
 
 namespace UnitySourceEngine
 {
-    public class mstudioattachment_t
+    public struct mstudioattachment_t
     {
-        public char[] builtName;
-        public int type;
-        public int bone;
-        public Vector3 attachmentPoint;
+        public int type; //4
+        public int bone; //4
+        public Vector3 attachmentPoint; //12
         public Vector3[] vectors; //SizeOf 3
-
-        public string name { get { return builtName != null ? new String(builtName) : name != null ? name : ""; } set { } }
-        public int nameOffset;
-        public int flags;
-        public int localBoneIndex;
-        public float localM11;
-        public float localM12;
-        public float localM13;
-        public float localM14;
-        public float localM21;
-        public float localM22;
-        public float localM23;
-        public float localM24;
-        public float localM31;
-        public float localM32;
-        public float localM33;
-        public float localM34;
+        public string name;
+        public int nameOffset; //4
+        public int flags; //4
+        public int localBoneIndex; //4
+        public float localM11; //4
+        public float localM12; //4
+        public float localM13; //4
+        public float localM14; //4
+        public float localM21; //4
+        public float localM22; //4
+        public float localM23; //4
+        public float localM24; //4
+        public float localM31; //4
+        public float localM32; //4
+        public float localM33; //4
+        public float localM34; //4
         public int[] unused; //SizeOf 8
+
+        public ulong CountBytes()
+        {
+            return (ulong)((vectors != null ? 12*vectors.Length : 0) + (!string.IsNullOrEmpty(name) ? 2*name.Length : 0) + (unused != null ? 4*unused.Length : 0) + 80);
+        }
 
         public void Dispose()
         {
-            builtName = null;
+            name = null;
             vectors = null;
             unused = null;
         }

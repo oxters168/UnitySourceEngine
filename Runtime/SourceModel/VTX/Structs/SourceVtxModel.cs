@@ -1,18 +1,27 @@
 ﻿namespace UnitySourceEngine
 {
-    public class SourceVtxModel
+    public struct SourceVtxModel
     {
-        public int lodCount;
-        public int lodOffset;
+        public int lodCount; //4
+        public int lodOffset; //4
 
-        public SourceVtxModelLod[] theVtxModelLods;
+        public SourceVtxModelLod[] vtxModelLods;
+
+        public ulong CountBytes()
+        {
+            ulong totalBytes = (ulong)(8);
+            if (vtxModelLods != null)
+                foreach (var vtxModelLod in vtxModelLods)
+                    totalBytes += vtxModelLod.CountBytes();
+            return totalBytes;
+        }
 
         public void Dispose()
         {
-            if (theVtxModelLods != null)
-                foreach (SourceVtxModelLod modelLod in theVtxModelLods)
-                    modelLod?.Dispose();
-            theVtxModelLods = null;
+            if (vtxModelLods != null)
+                foreach (var modelLod in vtxModelLods)
+                    modelLod.Dispose();
+            vtxModelLods = null;
         }
     }
 }

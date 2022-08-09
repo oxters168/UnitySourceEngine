@@ -2,43 +2,62 @@
 
 namespace UnitySourceEngine
 {
-    public class mstudioanimdesc_t
+    public struct mstudioanimdesc_t
     {
         public string name;
 
-        public int baseHeaderOffset;
-        public int nameOffset;
-        public float fps;
-        public int flags;
-        public int frameCount;
-        public int movementCount;
-        public int movementOffset;
-        public int ikRuleZeroFrameOffset;
+        public int baseHeaderOffset; //4
+        public int nameOffset; //4
+        public float fps; //4
+        public int flags; //4
+        public int frameCount; //4
+        public int movementCount; //4
+        public int movementOffset; //4
+        public int ikRuleZeroFrameOffset; //4
         public int[] unused1; //SizeOf 5
-        public int animBlock;
-        public int animOffset;
-        public int ikRuleCount;
-        public int ikRuleOffset;
-        public int animblockIkRuleOffset;
-        public int localHierarchyCount;
-        public int localHierarchyOffset;
-        public int sectionOffset;
-        public int sectionFrameOffset;
-        public int sectionFrameCount;
-        public short spanFrameCount;
-        public short spanCount;
-        public int spanOffset;
-        public float spanStallTime;
+        public int animBlock; //4
+        public int animOffset; //4
+        public int ikRuleCount; //4
+        public int ikRuleOffset; //4
+        public int animblockIkRuleOffset; //4
+        public int localHierarchyCount; //4
+        public int localHierarchyOffset; //4
+        public int sectionOffset; //4
+        public int sectionFrameOffset; //4
+        public int sectionFrameCount; //4
+        public short spanFrameCount; //2
+        public short spanCount; //2
+        public int spanOffset; //4
+        public float spanStallTime; //4
 
-        public List<List<mstudioanim_t>> sectionsOfAnimations;
+        public List<List<mstudioanim_t>> sectionsOfAnimations; //84*count*count
         public mstudio_frame_anim_t aniFrameAnim;
         public mstudioikrule_t[] ikRules;
-        public List<mstudioanimsections_t> sections;
-        public mstudiomovement_t[] movements;
+        public List<mstudioanimsections_t> sections; //4*count
+        public mstudiomovement_t[] movements; //56*length
         public mstudiolocalhierarchy_t[] localHierarchies;
 
-        public bool animIsLinkedToSequence;
+        public bool animIsLinkedToSequence; //4
         public mstudioseqdesc_t[] linkedSequences;
+
+        public ulong CountBytes()
+        {
+            int sofTotal = 0;
+            if (sectionsOfAnimations != null)
+                foreach(var list in sectionsOfAnimations)
+                    sofTotal += list.Count;
+            ulong totalBytes = (ulong)((unused1 != null ? 4*unused1.Length : 0) + (84*sofTotal) + (sections != null ? 4*sections.Count : 0) + (movements != null ? 56*movements.Length : 0) + 86) + aniFrameAnim.CountBytes();
+            if (ikRules != null)
+                foreach(var ikRule in ikRules)
+                    totalBytes += ikRule.CountBytes();
+            if (localHierarchies != null)
+                foreach(var localHeirarchy in localHierarchies)
+                    totalBytes += localHeirarchy.CountBytes();
+            if (linkedSequences != null)
+                foreach(var linkedSequence in linkedSequences)
+                    totalBytes += linkedSequence.CountBytes();
+            return totalBytes;
+        }
 
         public void Dispose()
         {
@@ -50,17 +69,17 @@ namespace UnitySourceEngine
             aniFrameAnim.Dispose();
             if (ikRules != null)
                 foreach (var ikRule in ikRules)
-                    ikRule?.Dispose();
+                    ikRule.Dispose();
             ikRules = null;
             sections = null;
             movements = null;
             if (localHierarchies != null)
                 foreach (var localHierarchy in localHierarchies)
-                    localHierarchy?.Dispose();
+                    localHierarchy.Dispose();
             localHierarchies = null;
             if (linkedSequences != null)
                 foreach (var linkedSequence in linkedSequences)
-                    linkedSequence?.Dispose();
+                    linkedSequence.Dispose();
             linkedSequences = null;
         }
     }

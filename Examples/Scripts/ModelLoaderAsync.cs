@@ -21,6 +21,10 @@ namespace UnitySourceEngine.Examples
         private UnityHelpers.TaskWrapper loadingTask;
 
         #if UNITY_EDITOR
+        [Debug]
+        #endif
+        public string byteCount = "";
+        #if UNITY_EDITOR
         [Space(10), Debug(true, true)]
         #endif
         public string header1 = "";
@@ -28,6 +32,10 @@ namespace UnitySourceEngine.Examples
         [Debug(true, true)]
         #endif
         public string header2 = "";
+        #if UNITY_EDITOR
+        [Debug(true, true)]
+        #endif
+        public string bones = "";
 
         private void Update()
         {
@@ -63,8 +71,17 @@ namespace UnitySourceEngine.Examples
                 using (VPKParser vpk = new VPKParser(vpkPath))
                     model.Parse(null, vpk, cancelToken, () =>
                     {
-                        header1 = model.header1.ToString();
-                        header2 = model.header2.ToString();
+                        ulong mdlBytes = model.mdl.CountBytes();
+                        ulong vtxBytes = model.vtx.CountBytes();
+                        ulong vvdBytes = model.vvd.CountBytes();
+                        ulong totalBytes = mdlBytes + vtxBytes + vvdBytes;
+                        byteCount = "MDL:\n    " + mdlBytes + " bytes\n    " + (mdlBytes / 1000f) + " kb\n    " + (mdlBytes / 1000000.0) + " mb" + "\n\nVTX:\n    " + vtxBytes + " bytes\n    " + (vtxBytes / 1000f) + " kb\n    " + (vtxBytes / 1000000.0) + "mb" + "\n\nVVD:\n    " + vvdBytes + " bytes\n    " + (vvdBytes / 1000f) + " kb\n    " + (vvdBytes / 1000000.0) + " mb" + "\n\nTotal:\n    " + totalBytes + " bytes\n    " + (totalBytes / 1000f) + " kb\n    " + (totalBytes / 1000000.0) + " mb";
+                        header1 = model.mdl.header1.ToString();
+                        header2 = model.mdl.header2.ToString();
+                        if (model.mdl.bones != null)
+                            for (int i = 0; i < model.mdl.bones.Length; i++)
+                                bones += "bones[" + i + "]:\n" + model.mdl.bones[i].ToString() + (i < model.mdl.bones.Length - 1 ? "\n\n" : "");
+
                         if (!loadingTask.cancelled)
                             UnityHelpers.TaskManagerController.RunAction(() => {
                                 model.Build();

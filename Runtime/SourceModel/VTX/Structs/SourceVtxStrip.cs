@@ -2,26 +2,30 @@
 
 namespace UnitySourceEngine
 {
-    public class SourceVtxStrip
+    public struct SourceVtxStrip
     {
-        public int indexCount;
-        public int indexMeshIndex;
+        public int indexCount; //4
+        public int indexMeshIndex; //4
 
-        public int vertexCount;
-        public int vertexMeshIndex;
+        public int vertexCount; //4
+        public int vertexMeshIndex; //4
 
-        public short boneCount;
+        public short boneCount; //2
 
-        public byte flags;
+        public byte flags; //1
 
-        public int boneStateChangeCount;
-        public int boneStateChangeOffset;
+        public int boneStateChangeCount; //4
+        public int boneStateChangeOffset; //4
 
-        public SourceVtxBoneStateChange[] theVtxBoneStateChanges;
+        public SourceVtxBoneStateChange[] vtxBoneStateChanges;
 
+        public ulong CountBytes()
+        {
+            return (ulong)((vtxBoneStateChanges != null ? 8*vtxBoneStateChanges.Length : 0) + 27);
+        }
         public void Dispose()
         {
-            theVtxBoneStateChanges = null;
+            vtxBoneStateChanges = null;
         }
     }
 
