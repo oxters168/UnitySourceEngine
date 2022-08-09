@@ -75,7 +75,7 @@ namespace UnitySourceEngine.Examples
                         ulong vtxBytes = model.vtx.CountBytes();
                         ulong vvdBytes = model.vvd.CountBytes();
                         ulong totalBytes = mdlBytes + vtxBytes + vvdBytes;
-                        byteCount = "MDL:\n    " + mdlBytes + " bytes\n    " + (mdlBytes / 1000f) + " kb\n    " + (mdlBytes / 1000000.0) + " mb" + "\n\nVTX:\n    " + vtxBytes + " bytes\n    " + (vtxBytes / 1000f) + " kb\n    " + (vtxBytes / 1000000.0) + "mb" + "\n\nVVD:\n    " + vvdBytes + " bytes\n    " + (vvdBytes / 1000f) + " kb\n    " + (vvdBytes / 1000000.0) + " mb" + "\n\nTotal:\n    " + totalBytes + " bytes\n    " + (totalBytes / 1000f) + " kb\n    " + (totalBytes / 1000000.0) + " mb";
+                        byteCount = "MDL:\n    " + mdlBytes + " bytes\n    " + (mdlBytes / 1000f) + " kb\n    " + (mdlBytes / 1000000.0) + " mb" + "\n\nVTX:\n    " + vtxBytes + " bytes\n    " + (vtxBytes / 1000f) + " kb\n    " + (vtxBytes / 1000000.0) + " mb" + "\n\nVVD:\n    " + vvdBytes + " bytes\n    " + (vvdBytes / 1000f) + " kb\n    " + (vvdBytes / 1000000.0) + " mb" + "\n\nTotal:\n    " + totalBytes + " bytes\n    " + (totalBytes / 1000f) + " kb\n    " + (totalBytes / 1000000.0) + " mb";
                         header1 = model.mdl.header1.ToString();
                         header2 = model.mdl.header2.ToString();
                         if (model.mdl.bones != null)

@@ -601,10 +601,7 @@ namespace UnitySourceEngine
                         prefabs[staticProps[i].model.key] = model;
                     }
                     else
-                    {
                         model = GameObject.Instantiate(prefabs[staticProps[i].model.key]);
-                        Debug.Log("Duplicated " + model.name);
-                    }
 
                     // model.name += "_" + staticProps[i].debug;
                     model.transform.SetParent(gameObject.transform);

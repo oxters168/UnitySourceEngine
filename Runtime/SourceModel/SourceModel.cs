@@ -74,58 +74,37 @@ namespace UnitySourceEngine
                                         bspParser.LoadPakFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl = mdlParser.Parse(stream, origOffset); });
                                     else if (!(cancelToken?.IsCancellationRequested ?? false))
                                         vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdl = mdlParser.Parse(stream, origOffset); });
-                                    PercentLoaded = 1f / 6;
+                                    PercentLoaded = 1f / 4;
 
-                                    currentMessage = "Reading VVD header";
+                                    currentMessage = "Reading VVD data";
                                     if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(vvdPath))
                                         bspParser.LoadPakFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd = vvdParser.Parse(stream, origOffset, mdl.header1.rootLod); });
                                     else if (!(cancelToken?.IsCancellationRequested ?? false))
                                         vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvd = vvdParser.Parse(stream, origOffset, mdl.header1.rootLod); });
-                                    PercentLoaded = 2f / 6;
+                                    PercentLoaded = 2f / 4;
 
                                     int mdlChecksum = mdl.header1.checkSum;
                                     int vvdChecksum = (int)vvd.header.checksum;
 
                                     if (mdlChecksum == vvdChecksum)
                                     {
-                                        currentMessage = "Reading VTX header";
+                                        currentMessage = "Reading VTX data";
                                         if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(vtxPath))
                                             bspParser.LoadPakFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx = vtxParser.Parse(stream, origOffset); });
                                         else if (!(cancelToken?.IsCancellationRequested ?? false))
                                             vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtx = vtxParser.Parse(stream, origOffset); });
-                                        PercentLoaded = 3f / 6;
+                                        PercentLoaded = 3f / 4;
 
                                         int vtxChecksum = vtx.header.checkSum;
 
                                         if (mdlChecksum == vtxChecksum)
                                         {
-                                            // currentMessage = "Parsing MDL";
-                                            // if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(mdlPath))
-                                            //     bspParser.LoadPakFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdlParser.Parse(stream, origOffset); });
-                                            // else if (!(cancelToken?.IsCancellationRequested ?? false))
-                                            //     vpkParser.LoadFileAsStream(mdlPath, (stream, origOffset, byteCount) => { mdlParser.Parse(stream, origOffset); });
-                                            // PercentLoaded = 4f / 7;
-
-                                            // currentMessage = "Parsing VVD";
-                                            // if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(vvdPath))
-                                            //     bspParser.LoadPakFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvdParser.Parse(stream, mdl.header1.rootLod, origOffset); });
-                                            // else if (!(cancelToken?.IsCancellationRequested ?? false))
-                                            //     vpkParser.LoadFileAsStream(vvdPath, (stream, origOffset, byteCount) => { vvdParser.Parse(stream, mdl.header1.rootLod, origOffset); });
-                                            // PercentLoaded = 4f / 6;
-
-                                            // currentMessage = "Parsing VTX";
-                                            // if (!(cancelToken?.IsCancellationRequested ?? false) && bspParser != null && bspParser.HasPakFile(vtxPath))
-                                            //     bspParser.LoadPakFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtxParser.Parse(stream, origOffset); });
-                                            // else if (!(cancelToken?.IsCancellationRequested ?? false))
-                                            //     vpkParser.LoadFileAsStream(vtxPath, (stream, origOffset, byteCount) => { vtxParser.Parse(stream, origOffset); });
-                                            // PercentLoaded = 5f / 6;
-
                                             version = mdl.header1.version;
                                             id = mdl.header1.id;
 
                                             currentMessage = "Converting to mesh";
                                             if (!(cancelToken?.IsCancellationRequested ?? false) && mdl.bodyParts != null)
-                                                ReadFaceMeshes(mdlParser, vvdParser, vtxParser, bspParser, vpkParser);
+                                                ReadFaceMeshes(bspParser, vpkParser);
                                             else if (!(cancelToken?.IsCancellationRequested ?? false))
                                                 Debug.LogError("SourceModel: Could not find body parts of " + modelPath);
                                             PercentLoaded = 1;
@@ -156,7 +135,7 @@ namespace UnitySourceEngine
 
             onFinished?.Invoke();
         }
-        private void ReadFaceMeshes(MDLParser mdl, VVDParser vvd, VTXParser vtx, BSPParser bspParser, VPKParser vpkParser)
+        private void ReadFaceMeshes(BSPParser bspParser, VPKParser vpkParser)
         {
             int textureIndex = 0;
             if (this.mdl.bodyParts.Length == this.vtx.bodyParts.Length)
