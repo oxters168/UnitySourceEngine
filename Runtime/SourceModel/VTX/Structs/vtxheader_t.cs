@@ -22,5 +22,21 @@
 
         public int numBodyParts; //4
         public int bodyPartOffset; // offset to an array of BodyPartHeader_t's //4
+
+        public override string ToString()
+        {
+            string output = string.Empty;
+            output += "_version(" + version + ")";
+            output += "\n_vertCacheSize(" + vertCacheSize + ")";
+            output += "\n_maxBonesPerStrip(" + maxBonesPerStrip + ")";
+            output += "\n_maxBonesPerFace(" + maxBonesPerFace + ")";//new string(name).Replace("\0", "") + ")";
+            output += "\n_maxBonesPerVert(" + maxBonesPerVert + ")";
+            output += "\n_checkSum(" + checkSum + ")";
+            output += "\n_numLODs(" + numLODs + ")";
+            output += "\n_materialReplacementListOffset(" + materialReplacementListOffset + ")";
+            output += "\n_numBodyParts(" + numBodyParts + ")";
+            output += "\n_bodyPartOffset(" + bodyPartOffset + ")";
+            return output;
+        }
     }
 }

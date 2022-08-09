@@ -768,6 +768,12 @@ MonoBehaviour:
   modelPath: models/weapons/v_rif_m4a1
   flatTextures: 0
   maxTextureSize: 2048
+  byteCount: 
+  mdlHeader1: 
+  mdlHeader2: 
+  vtxHeader: 
+  vvdHeader: 
+  mdlBones: 
 --- !u!4 &1277443854
 Transform:
   m_ObjectHideFlags: 0
@@ -792,7 +798,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1545402889}
   m_Layer: 0
-  m_Name: Press play in the editor to start loading the map
+  m_Name: Press play in the editor to start loading the model
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

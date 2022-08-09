@@ -13,6 +13,24 @@
         public int vertexDataStart;        // offset from base to vertex block //4
         public int tangentDataStart;        // offset from base to tangent block //4
 
+        public override string ToString()
+        {
+            string output = string.Empty;
+            output += "_id(" + id + ")";
+            output += "\n_version(" + version + ")";
+            output += "\n_checksum(" + checksum + ")";
+            output += "\n_numLODs(" + numLODs + ")";
+            output += "\n_numLODVertices[" + (numLODVertices != null ? numLODVertices.Length.ToString() : "null") + "]";
+            if (numLODVertices != null)
+                for (int i = 0; i < numLODVertices.Length; i++)
+                    output += "\n    [" + i + "]: " + numLODVertices[i];
+            output += "\n_numFixups(" + numFixups + ")";
+            output += "\n_fixupTableStart(" + fixupTableStart + ")";
+            output += "\n_vertexDataStart(" + vertexDataStart + ")";
+            output += "\n_tangentDataStart(" + tangentDataStart + ")";
+            return output;
+        }
+
         public ulong CountBytes()
         {
             return (ulong)((numLODVertices != null ? 4*numLODVertices.Length : 0) + 28);

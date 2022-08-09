@@ -27,15 +27,23 @@ namespace UnitySourceEngine.Examples
         #if UNITY_EDITOR
         [Space(10), Debug(true, true)]
         #endif
-        public string header1 = "";
+        public string mdlHeader1 = "";
         #if UNITY_EDITOR
         [Debug(true, true)]
         #endif
-        public string header2 = "";
+        public string mdlHeader2 = "";
         #if UNITY_EDITOR
         [Debug(true, true)]
         #endif
-        public string bones = "";
+        public string vtxHeader = "";
+        #if UNITY_EDITOR
+        [Debug(true, true)]
+        #endif
+        public string vvdHeader = "";
+        #if UNITY_EDITOR
+        [Debug(true, true)]
+        #endif
+        public string mdlBones = "";
 
         private void Update()
         {
@@ -76,11 +84,13 @@ namespace UnitySourceEngine.Examples
                         ulong vvdBytes = model.vvd.CountBytes();
                         ulong totalBytes = mdlBytes + vtxBytes + vvdBytes;
                         byteCount = "MDL:\n    " + mdlBytes + " bytes\n    " + (mdlBytes / 1000f) + " kb\n    " + (mdlBytes / 1000000.0) + " mb" + "\n\nVTX:\n    " + vtxBytes + " bytes\n    " + (vtxBytes / 1000f) + " kb\n    " + (vtxBytes / 1000000.0) + " mb" + "\n\nVVD:\n    " + vvdBytes + " bytes\n    " + (vvdBytes / 1000f) + " kb\n    " + (vvdBytes / 1000000.0) + " mb" + "\n\nTotal:\n    " + totalBytes + " bytes\n    " + (totalBytes / 1000f) + " kb\n    " + (totalBytes / 1000000.0) + " mb";
-                        header1 = model.mdl.header1.ToString();
-                        header2 = model.mdl.header2.ToString();
+                        mdlHeader1 = model.mdl.header1.ToString();
+                        mdlHeader2 = model.mdl.header2.ToString();
+                        vtxHeader = model.vtx.header.ToString();
+                        vvdHeader = model.vvd.header.ToString();
                         if (model.mdl.bones != null)
                             for (int i = 0; i < model.mdl.bones.Length; i++)
-                                bones += "bones[" + i + "]:\n" + model.mdl.bones[i].ToString() + (i < model.mdl.bones.Length - 1 ? "\n\n" : "");
+                                mdlBones += "bones[" + i + "]:\n" + model.mdl.bones[i].ToString() + (i < model.mdl.bones.Length - 1 ? "\n\n" : "");
 
                         if (!loadingTask.cancelled)
                             UnityHelpers.TaskManagerController.RunAction(() => {
